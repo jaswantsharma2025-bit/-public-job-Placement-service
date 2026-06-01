@@ -1,10 +1,31 @@
 import express from "express";
 import authRoutes from "../modules/auth/auth.routes";
 import testRoutes from "../modules/auth/auth.test";
+import workerRoutes from "../modules/worker/worker.routes";
+import discoveryRoutes from "../modules/discovery/worker.discovery.routes";
+import bookingRoutes from "../modules/booking/booking.routes";
+import reviewRoutes from "../modules/review/review.routes";
+import customerRoutes from "../modules/customer/customer.routes";
 
 const router = express.Router();
 
 router.use("/auth", authRoutes);
 router.use("/test", testRoutes);
+router.use("/worker", workerRoutes);
+router.use(
+  "/workers",
+  discoveryRoutes
+);
+router.use("/bookings", bookingRoutes);
+router.use(
+  "/reviews",
+  reviewRoutes
+);
+
+router.use(
+  "/customer",
+  customerRoutes
+);
+
 
 export default router;
