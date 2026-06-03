@@ -6,6 +6,8 @@ import discoveryRoutes from "../modules/discovery/worker.discovery.routes";
 import bookingRoutes from "../modules/booking/booking.routes";
 import reviewRoutes from "../modules/review/review.routes";
 import customerRoutes from "../modules/customer/customer.routes";
+import adminRoutes from "../modules/admin/admin.routes";
+import complaintsRoutes from "../modules/complaints/complaints.routes";
 
 const router = express.Router();
 
@@ -27,5 +29,11 @@ router.use(
   customerRoutes
 );
 
+router.use("/admin", adminRoutes);
+
+router.use(
+  "/complaints",
+  complaintsRoutes
+);
 
 export default router;
