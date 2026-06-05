@@ -9,6 +9,10 @@ import {
   reactivateWorker,
   getAllBookings,
   getAnalytics,
+  reassignBooking,
+  forceCompleteBooking,
+  forceCancelBooking,
+  getReplacementCandidates,
 } from "./admin.service";
 
 export const pendingWorkers = async (
@@ -166,4 +170,114 @@ export const analytics = async (
       message: error.message,
     });
   }
+};
+
+export const forceCompleteBookingHandler =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+
+      const booking =
+        await forceCompleteBooking(
+          String(req.params.id)
+        );
+
+      res.json({
+        success: true,
+        data: booking,
+      });
+
+    } catch (error: any) {
+
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+
+    }
+};
+
+export const forceCancelBookingHandler =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+
+      const booking =
+        await forceCancelBooking(
+          String(req.params.id)
+        );
+
+      res.json({
+        success: true,
+        data: booking,
+      });
+
+    } catch (error: any) {
+
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+
+    }
+};
+
+export const reassignBookingHandler =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+
+      const booking =
+        await reassignBooking(
+          String(req.params.id),
+          req.body.newWorkerId
+        );
+
+      res.json({
+        success: true,
+        data: booking,
+      });
+
+    } catch (error: any) {
+
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+
+    }
+};
+
+export const replacementCandidates =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+
+      const workers =
+        await getReplacementCandidates(
+          String(req.params.id)
+        );
+
+      res.json({
+        success: true,
+        count: workers.length,
+        data: workers,
+      });
+
+    } catch (error: any) {
+
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+
+    }
 };

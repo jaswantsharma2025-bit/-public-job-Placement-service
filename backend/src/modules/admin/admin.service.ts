@@ -130,3 +130,125 @@ export const getAnalytics = async () => {
       revenueData._sum.platformFee || 0,
   };
 };
+
+export const forceCompleteBooking =
+  async (bookingId: string) => {
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+      },
+    });
+};
+
+export const forceCancelBooking =
+  async (bookingId: string) => {
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+      },
+    });
+};
+
+export const reassignBooking =
+  async (
+    bookingId: string,
+    newWorkerId: string
+  ) => {
+
+    const worker =
+      await prisma.workerProfile.findUnique({
+        where: {
+          userId: newWorkerId,
+        },
+        include: {
+          user: true,
+        },
+      });
+
+    if (!worker) {
+      throw new Error(
+        "Worker not found"
+      );
+    }
+
+    if (!worker.isVerified) {
+      throw new Error(
+        "Worker not verified"
+      );
+    }
+
+    if (worker.isSuspended) {
+      throw new Error(
+        "Worker suspended"
+      );
+    }
+
+    if (!worker.isAvailable) {
+      throw new Error(
+        "Worker unavailable"
+      );
+    }
+
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        workerId: newWorkerId,
+        workerName: worker.user.name,
+        workerPhone: worker.user.phone,
+
+        status: "PENDING",
+
+        acceptedAt: null,
+      },
+    });
+};
+
+export const getReplacementCandidates =
+  async (bookingId: string) => {
+
+    const booking =
+      await prisma.booking.findUnique({
+        where: {
+          id: bookingId,
+        },
+      });
+
+    if (!booking) {
+      throw new Error(
+        "Booking not found"
+      );
+    }
+
+    return prisma.workerProfile.findMany({
+      where: {
+        skillCategory:
+          booking.serviceCategory,
+
+        city: booking.city,
+
+        isVerified: true,
+
+        isAvailable: true,
+
+        isSuspended: false,
+
+        userId: {
+          not: booking.workerId,
+        },
+      },
+
+      include: {
+        user: true,
+      },
+    });
+};

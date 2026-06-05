@@ -44,6 +44,11 @@ enum BookingStatus {
   NO_SHOW
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
 model User {
   id       String @id @default(cuid())
   name     String
@@ -199,6 +204,20 @@ model Booking {
 
   worker     User        @relation("WorkerBookings", fields: [workerId], references: [id])
   complaints Complaint[]
+  paymentStatus PaymentStatus @default(PENDING)
+
+paymentMethod String?
+
+startedByCustomer Boolean @default(false)
+
+completedByCustomer Boolean @default(false)
+
+replacementRequested Boolean @default(false)
+
+replacementReason String?
+
+  replacementWorkerId String?
+  replacementAssignedAt DateTime?
 
   @@index([customerId])
   @@index([workerId])

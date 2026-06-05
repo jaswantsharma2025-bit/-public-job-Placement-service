@@ -11,6 +11,10 @@ import {
   reactivateWorkerHandler,
   bookings,
   analytics,
+  reassignBookingHandler,
+  forceCancelBookingHandler,
+  forceCompleteBookingHandler,
+  replacementCandidates,
 } from "./admin.controller";
 
 const router = express.Router();
@@ -55,4 +59,23 @@ router.get(
   analytics
 );
 
+router.patch(
+  "/bookings/:id/complete",
+  forceCompleteBookingHandler
+);
+
+router.patch(
+  "/bookings/:id/cancel",
+  forceCancelBookingHandler
+);
+
+router.patch(
+  "/bookings/:id/reassign",
+  reassignBookingHandler
+);
+
+router.get(
+  "/bookings/:id/replacement-candidates",
+  replacementCandidates
+);
 export default router;

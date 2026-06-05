@@ -9,9 +9,12 @@ import {
   getBookingById,
   acceptBooking,
   rejectBooking,
-  startBooking,
   completeBooking,
-  cancelBooking
+  cancelBooking,
+  markNoShow,
+  requestReplacement,
+  markBookingPaid,
+  customerStartBooking,
 } from "./booking.service";
 
 import {
@@ -170,14 +173,14 @@ export const rejectBookingHandler =
     }
   };
 
-  export const startBookingHandler =
+  export const customerStartBookingHandler =
   async (
     req: AuthRequest,
     res: Response
   ) => {
     try {
       const booking =
-        await startBooking(
+        await customerStartBooking(
           String(req.params.id),
           req.user!.userId
         );
@@ -226,6 +229,80 @@ export const cancelBookingHandler =
     try {
       const booking =
         await cancelBooking(
+          String(req.params.id),
+          req.user!.userId
+        );
+
+      res.json({
+        success: true,
+        data: booking,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
+
+  export const markPaidHandler =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      const booking =
+        await markBookingPaid(
+          String(req.params.id),
+          req.user!.userId,
+          req.body.paymentMethod
+        );
+
+      res.json({
+        success: true,
+        data: booking,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
+
+export const replacementHandler =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      const booking =
+        await requestReplacement(
+          String(req.params.id),
+          req.user!.userId,
+          req.body.reason
+        );
+
+      res.json({
+        success: true,
+        data: booking,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
+
+export const noShowHandler =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      const booking =
+        await markNoShow(
           String(req.params.id),
           req.user!.userId
         );

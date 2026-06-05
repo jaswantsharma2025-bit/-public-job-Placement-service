@@ -14,13 +14,45 @@ export const createBooking = async (
   }
 
   const worker =
-    await prisma.user.findUnique({
-      where: { id: data.workerId },
-    });
+  await prisma.workerProfile.findUnique({
+    where: {
+      userId: data.workerId,
+    },
+    include: {
+      user: true,
+    },
+  });
 
-  if (!worker) {
-    throw new Error("Worker not found");
-  }
+if (!worker) {
+  throw new Error("Worker not found");
+}
+
+if (!worker.isVerified) {
+  throw new Error(
+    "Worker not verified"
+  );
+}
+
+if (worker.isSuspended) {
+  throw new Error(
+    "Worker suspended"
+  );
+}
+
+if (!worker.isAvailable) {
+  throw new Error(
+    "Worker unavailable"
+  );
+}
+
+if (
+  worker.skillCategory !==
+  data.serviceCategory
+) {
+  throw new Error(
+    "Worker does not provide this service"
+  );
+}
 
   return prisma.booking.create({
     data: {
@@ -30,8 +62,8 @@ export const createBooking = async (
       customerName: customer.name,
       customerPhone: customer.phone,
 
-      workerName: worker.name,
-      workerPhone: worker.phone,
+      workerName: worker.user.name,
+workerPhone: worker.user.phone,
 
       bookingType: data.bookingType,
 
@@ -135,6 +167,59 @@ export const acceptBooking =
       );
     }
 
+    const workerProfile =
+  await prisma.workerProfile.findUnique({
+    where: {
+      userId: workerId,
+    },
+  });
+
+if (!workerProfile?.isAvailable) {
+  throw new Error(
+    "Worker unavailable"
+  );
+}
+
+if (!workerProfile.isVerified) {
+  throw new Error(
+    "Worker not verified"
+  );
+}
+
+if (workerProfile.isSuspended) {
+  throw new Error(
+    "Worker suspended"
+  );
+}
+
+const activeBooking =
+  await prisma.booking.findFirst({
+    where: {
+      workerId,
+
+      status: {
+        in: [
+          "ACCEPTED",
+          "IN_PROGRESS",
+        ],
+      },
+    },
+  });
+
+if (activeBooking) {
+  throw new Error(
+    "Worker already has an active booking"
+  );
+}
+await prisma.workerProfile.update({
+  where: {
+    userId: workerId,
+  },
+  data: {
+    isAvailable: false,
+  },
+});
+
     return prisma.booking.update({
       where: {
         id: bookingId,
@@ -192,41 +277,58 @@ export const rejectBooking =
     });
   };
 
-  export const startBooking = async (
-  bookingId: string,
-  workerId: string
-) => {
-  const booking =
-    await prisma.booking.findUnique({
-      where: { id: bookingId },
+export const customerStartBooking =
+  async (
+    bookingId: string,
+    customerId: string
+  ) => {
+
+    const booking =
+      await prisma.booking.findUnique({
+        where: {
+          id: bookingId,
+        },
+      });
+
+    if (!booking) {
+      throw new Error(
+        "Booking not found"
+      );
+    }
+
+    if (
+      booking.customerId !== customerId
+    ) {
+      throw new Error(
+        "Unauthorized"
+      );
+    }
+
+    if (
+      booking.status !== "ACCEPTED"
+    ) {
+      throw new Error(
+        "Booking must be ACCEPTED"
+      );
+    }
+
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        status: "IN_PROGRESS",
+        startedAt: new Date(),
+        startedByCustomer: true,
+      },
     });
-
-  if (!booking) {
-    throw new Error("Booking not found");
-  }
-
-  if (booking.workerId !== workerId) {
-    throw new Error("Unauthorized");
-  }
-
-  if (booking.status !== "ACCEPTED") {
-    throw new Error(
-      "Booking must be ACCEPTED first"
-    );
-  }
-
-  return prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      status: "IN_PROGRESS",
-      startedAt: new Date(),
-    },
-  });
 };
+
+
 
 export const completeBooking = async (
   bookingId: string,
-  workerId: string
+  customerId: string
 ) => {
   const booking =
     await prisma.booking.findUnique({
@@ -237,8 +339,12 @@ export const completeBooking = async (
     throw new Error("Booking not found");
   }
 
-  if (booking.workerId !== workerId) {
-    throw new Error("Unauthorized");
+  if (
+    booking.customerId !== customerId
+  ) {
+    throw new Error(
+      "Only customer can complete booking"
+    );
   }
 
   if (
@@ -249,13 +355,23 @@ export const completeBooking = async (
     );
   }
 
-  return prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      status: "COMPLETED",
-      completedAt: new Date(),
-    },
-  });
+  await prisma.workerProfile.update({
+  where: {
+    userId: booking.workerId,
+  },
+  data: {
+    isAvailable: true,
+  },
+});
+
+ return prisma.booking.update({
+  where: { id: bookingId },
+  data: {
+    status: "COMPLETED",
+    completedAt: new Date(),
+    completedByCustomer: true,
+  },
+});
 };
 
 export const cancelBooking = async (
@@ -278,12 +394,22 @@ export const cancelBooking = async (
   }
 
   if (
-    booking.status === "COMPLETED"
-  ) {
-    throw new Error(
-      "Completed booking cannot be cancelled"
-    );
-  }
+  booking.status === "COMPLETED" ||
+  booking.status === "CANCELLED"
+) {
+  throw new Error(
+    "Booking already closed"
+  );
+}
+
+  await prisma.workerProfile.update({
+  where: {
+    userId: booking.workerId,
+  },
+  data: {
+    isAvailable: true,
+  },
+});
 
   return prisma.booking.update({
     where: { id: bookingId },
@@ -292,4 +418,134 @@ export const cancelBooking = async (
       cancelledAt: new Date(),
     },
   });
+};
+
+export const markBookingPaid =
+  async (
+    bookingId: string,
+    customerId: string,
+    paymentMethod: string
+  ) => {
+    const booking =
+      await prisma.booking.findUnique({
+        where: {
+          id: bookingId,
+        },
+      });
+
+    if (!booking) {
+      throw new Error(
+        "Booking not found"
+      );
+    }
+
+    if (
+      booking.customerId !== customerId
+    ) {
+      throw new Error(
+        "Unauthorized"
+      );
+    }
+
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        paymentStatus: "PAID",
+        paymentMethod,
+      },
+    });
+};
+
+export const requestReplacement =
+  async (
+    bookingId: string,
+    customerId: string,
+    reason: string
+  ) => {
+    const booking =
+      await prisma.booking.findUnique({
+        where: {
+          id: bookingId,
+        },
+      });
+
+    if (!booking) {
+      throw new Error(
+        "Booking not found"
+      );
+    }
+
+    if (
+      booking.customerId !== customerId
+    ) {
+      throw new Error(
+        "Unauthorized"
+      );
+    }
+
+    if (
+  booking.status !== "NO_SHOW" &&
+  booking.status !== "ACCEPTED"
+) {
+  throw new Error(
+    "Replacement not allowed"
+  );
+}
+
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        replacementRequested: true,
+        replacementReason: reason,
+      },
+    });
+};
+
+export const markNoShow =
+  async (
+    bookingId: string,
+    customerId: string
+  ) => {
+    const booking =
+      await prisma.booking.findUnique({
+        where: {
+          id: bookingId,
+        },
+      });
+
+    if (!booking) {
+      throw new Error(
+        "Booking not found"
+      );
+    }
+
+    if (
+      booking.customerId !== customerId
+    ) {
+      throw new Error(
+        "Unauthorized"
+      );
+    }
+
+    await prisma.workerProfile.update({
+  where: {
+    userId: booking.workerId,
+  },
+  data: {
+    isAvailable: true,
+  },
+});
+
+    return prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        status: "NO_SHOW",
+      },
+    });
 };

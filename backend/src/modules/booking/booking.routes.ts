@@ -11,7 +11,10 @@ import {
   rejectBookingHandler,
   cancelBookingHandler,
   completeBookingHandler,
-  startBookingHandler,
+  markPaidHandler,
+  replacementHandler,
+  noShowHandler,
+  customerStartBookingHandler,
 } from "./booking.controller";
 
 const router = express.Router();
@@ -49,18 +52,33 @@ router.patch(
 );
 
 router.patch(
-  "/:id/start",
-  startBookingHandler
+  "/:id/customer-start",
+  customerStartBookingHandler
 );
 
 router.patch(
-  "/:id/complete",
+  "/:id/customer-complete",
   completeBookingHandler
 );
 
 router.patch(
   "/:id/cancel",
   cancelBookingHandler
+);
+
+router.patch(
+  "/:id/pay",
+  markPaidHandler
+);
+
+router.patch(
+  "/:id/replacement",
+  replacementHandler
+);
+
+router.patch(
+  "/:id/no-show",
+  noShowHandler
 );
 
 export default router;

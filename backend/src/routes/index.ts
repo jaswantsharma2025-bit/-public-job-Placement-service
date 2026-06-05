@@ -8,6 +8,8 @@ import reviewRoutes from "../modules/review/review.routes";
 import customerRoutes from "../modules/customer/customer.routes";
 import adminRoutes from "../modules/admin/admin.routes";
 import complaintsRoutes from "../modules/complaints/complaints.routes";
+import categoryRoutes from "../modules/categories/category.routes";
+import app from "../app";
 
 const router = express.Router();
 
@@ -34,6 +36,11 @@ router.use("/admin", adminRoutes);
 router.use(
   "/complaints",
   complaintsRoutes
+);
+
+router.use(
+  "/categories",
+  categoryRoutes
 );
 
 export default router;
