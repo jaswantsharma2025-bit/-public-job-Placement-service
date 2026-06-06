@@ -1,0 +1,265 @@
+import axios from 'axios';
+import type { AuthResponse, LoginRequest, RegisterRequest } from '../types';
+
+const API_BASE = 'http://localhost:5000/api';
+
+export const api = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authService = {
+  login: async (data: LoginRequest): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/login', data);
+    return response.data;
+  },
+
+  register: async (data: RegisterRequest): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/register', data);
+    return response.data;
+  },
+};
+
+export const workerService = {
+  getAll: async (params?: {
+    skillCategory?: string;
+    city?: string;
+    isAvailable?: boolean;
+    isVerified?: boolean;
+  }) => {
+    const response = await api.get('/workers', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/workers/${id}`);
+    return response.data;
+  },
+
+  updateAvailability: async (isAvailable: boolean) => {
+    const response = await api.patch('/worker/availability', { isAvailable });
+    return response.data;
+  },
+
+  updateLocation: async (data: { latitude: number; longitude: number; city: string; state: string }) => {
+    const response = await api.patch('/worker/location', data);
+    return response.data;
+  },
+
+  getEarnings: async () => {
+    const response = await api.get('/worker/earnings');
+    return response.data;
+  },
+};
+
+export const bookingService = {
+  create: async (data: {
+    workerId: string;
+    bookingType: string;
+    serviceCategory: string;
+    address: string;
+    city: string;
+    scheduledDate?: string;
+    durationMinutes: number;
+    servicePrice: number;
+    notes?: string;
+  }) => {
+    const response = await api.post('/bookings', data);
+    return response.data;
+  },
+
+  getMyBookings: async () => {
+    const response = await api.get('/bookings/my');
+    return response.data;
+  },
+
+  getWorkerBookings: async () => {
+    const response = await api.get('/bookings/worker/my');
+    return response.data;
+  },
+
+  acceptBooking: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/accept`);
+    return response.data;
+  },
+
+  rejectBooking: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/reject`);
+    return response.data;
+  },
+
+  startService: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/start`);
+    return response.data;
+  },
+
+  completeService: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/complete`);
+    return response.data;
+  },
+
+  cancelBooking: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/cancel`);
+    return response.data;
+  },
+
+  requestReplacement: async (id: string) => {
+    const response = await api.post(`/bookings/${id}/request-replacement`);
+    return response.data;
+  },
+};
+
+export const reviewService = {
+  create: async (data: { bookingId: string; rating: number; comment: string }) => {
+    const response = await api.post('/reviews', data);
+    return response.data;
+  },
+
+  getWorkerReviews: async (workerId: string) => {
+    const response = await api.get(`/reviews/worker/${workerId}`);
+    return response.data;
+  },
+};
+
+export const complaintService = {
+  create: async (data: {
+    bookingId: string;
+    againstUserId: string;
+    reason: string;
+    description: string;
+  }) => {
+    const response = await api.post('/complaints', data);
+    return response.data;
+  },
+
+  getMy: async () => {
+    const response = await api.get('/complaints/my');
+    return response.data;
+  },
+
+  getAll: async () => {
+    const response = await api.get('/complaints/admin');
+    return response.data;
+  },
+
+  resolve: async (id: string, adminNotes?: string) => {
+    const response = await api.patch(`/complaints/${id}/resolve`, { adminNotes });
+    return response.data;
+  },
+
+  reject: async (id: string, adminNotes?: string) => {
+    const response = await api.patch(`/complaints/${id}/reject`, { adminNotes });
+    return response.data;
+  },
+};
+
+export const adminService = {
+  getAnalytics: async () => {
+    const response = await api.get('/admin/analytics');
+    return response.data;
+  },
+
+  getPendingWorkers: async () => {
+    const response = await api.get('/admin/workers/pending');
+    return response.data;
+  },
+
+  approveWorker: async (id: string) => {
+    const response = await api.patch(`/admin/workers/${id}/approve`);
+    return response.data;
+  },
+
+  rejectWorker: async (id: string, reason: string) => {
+    const response = await api.patch(`/admin/workers/${id}/reject`, { reason });
+    return response.data;
+  },
+
+  suspendWorker: async (id: string) => {
+    const response = await api.patch(`/admin/workers/${id}/suspend`);
+    return response.data;
+  },
+
+  reactivateWorker: async (id: string) => {
+    const response = await api.patch(`/admin/workers/${id}/reactivate`);
+    return response.data;
+  },
+
+  getAllBookings: async () => {
+    const response = await api.get('/admin/bookings');
+    return response.data;
+  },
+
+  forceCompleteBooking: async (id: string) => {
+    const response = await api.patch(`/admin/bookings/${id}/force-complete`);
+    return response.data;
+  },
+
+  forceCancelBooking: async (id: string) => {
+    const response = await api.patch(`/admin/bookings/${id}/force-cancel`);
+    return response.data;
+  },
+
+  getReplacementCandidates: async (bookingId: string) => {
+    const response = await api.get(`/admin/bookings/${bookingId}/replacement-candidates`);
+    return response.data;
+  },
+
+  assignReplacement: async (bookingId: string, workerId: string) => {
+    const response = await api.post(`/admin/bookings/${bookingId}/assign-replacement`, { workerId });
+    return response.data;
+  },
+};
+
+export const profileService = {
+  updateCustomer: async (data: {
+    gender?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    latitude?: number;
+    longitude?: number;
+  }) => {
+    const response = await api.patch('/customer/profile', data);
+    return response.data;
+  },
+
+  updateWorker: async (data: {
+    aadhaarNumber?: string;
+    gender?: string;
+    skillCategory?: string;
+    experience?: number;
+    expectedSalary?: number;
+    city?: string;
+    state?: string;
+    latitude?: number;
+    longitude?: number;
+  }) => {
+    const response = await api.patch('/worker/profile', data);
+    return response.data;
+  },
+};
