@@ -43,7 +43,11 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+  return <div>Loading...</div>;
+}
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
@@ -87,6 +91,15 @@ function AppRoutes() {
       <Route path="/admin/complaints" element={<ProtectedRoute allowedRoles={['ADMIN']}><ComplaintManagement /></ProtectedRoute>} />
 
       <Route path="/employer" element={<EmployerPortal />} />
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
+      />
     </Routes>
   );
 }

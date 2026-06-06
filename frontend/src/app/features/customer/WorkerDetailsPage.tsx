@@ -11,17 +11,23 @@ export default function WorkerDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: worker, isLoading } = useQuery({
+  const { data: workerData, isLoading } = useQuery({
     queryKey: ['worker', id],
     queryFn: () => workerService.getById(id!),
     enabled: !!id,
   });
 
-  const { data: reviews } = useQuery({
+  const worker = workerData?.data || workerData;
+
+  const { data: reviewsData } = useQuery({
     queryKey: ['worker-reviews', id],
     queryFn: () => reviewService.getWorkerReviews(id!),
     enabled: !!id,
   });
+
+  const reviews = Array.isArray(reviewsData)
+    ? reviewsData
+    : reviewsData?.data || [];
 
   if (isLoading) {
     return (

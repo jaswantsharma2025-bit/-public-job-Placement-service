@@ -28,10 +28,14 @@ export default function ComplaintsPage() {
     queryFn: bookingService.getMyBookings,
   });
 
-  const { data: complaints, isLoading } = useQuery({
-    queryKey: ['my-complaints'],
-    queryFn: complaintService.getMy,
-  });
+  const { data: complaintsData, isLoading } = useQuery({
+  queryKey: ['my-complaints'],
+  queryFn: complaintService.getMy,
+});
+
+const complaints = Array.isArray(complaintsData)
+  ? complaintsData
+  : complaintsData?.data || [];
 
   const createComplaintMutation = useMutation({
     mutationFn: (data: ComplaintForm) => complaintService.create(data),
@@ -41,9 +45,16 @@ export default function ComplaintsPage() {
       setShowForm(false);
       reset();
     },
-    onError: () => {
-      toast.error('Failed to submit complaint');
-    },
+    onError: (error: any) => {
+  console.log(
+    "COMPLAINT ERROR",
+    error.response?.data
+  );
+
+  toast.error(
+    error.response?.data?.message
+  );
+},
   });
 
   const onSubmit = (data: ComplaintForm) => {

@@ -13,9 +13,8 @@ export const customerProfileSchema = z.object({
 
   state: z.string().min(2),
 
-  latitude: z.number().optional(),
-
-  longitude: z.number().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 });
 
 export const updateCustomerProfileSchema =

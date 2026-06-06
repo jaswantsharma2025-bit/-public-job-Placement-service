@@ -5,10 +5,14 @@ import { bookingService } from '../../services/api';
 import { Calendar, CheckCircle, Clock, DollarSign } from 'lucide-react';
 
 export default function CustomerDashboard() {
-  const { data: bookings } = useQuery({
-    queryKey: ['customer-bookings'],
-    queryFn: bookingService.getMyBookings,
-  });
+  const { data } = useQuery({
+  queryKey: ['customer-bookings'],
+  queryFn: bookingService.getMyBookings,
+});
+
+const bookings = Array.isArray(data)
+  ? data
+  : data?.data || [];
 
   const totalBookings = bookings?.length || 0;
   const activeBookings = bookings?.filter((b: any) => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS')?.length || 0;

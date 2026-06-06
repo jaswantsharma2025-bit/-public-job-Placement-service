@@ -23,20 +23,25 @@ const categories = [
 
 export default function CustomerHome() {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<SkillCategory | ''>('');
+  const [selectedCategory, setSelectedCategory] =
+  useState<SkillCategory | 'ALL'>('ALL');
   const [city, setCity] = useState('');
   const [availableOnly, setAvailableOnly] = useState(false);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
 
-  const { data: workers, isLoading } = useQuery({
+  const { data: workersData, isLoading } = useQuery({
     queryKey: ['workers', selectedCategory, city, availableOnly, verifiedOnly],
     queryFn: () => workerService.getAll({
-      ...(selectedCategory && { skillCategory: selectedCategory }),
+      ...(selectedCategory !== 'ALL' && { skillCategory: selectedCategory }),
       ...(city && { city }),
       ...(availableOnly && { isAvailable: true }),
       ...(verifiedOnly && { isVerified: true }),
     }),
   });
+
+  const workers = Array.isArray(workersData)
+    ? workersData
+    : workersData?.data || [];
 
   return (
     <CustomerLayout>
@@ -50,9 +55,8 @@ export default function CustomerHome() {
           {categories.map((category) => (
             <Card
               key={category.category}
-              className={`cursor-pointer hover:shadow-lg transition-all ${
-                selectedCategory === category.category ? 'ring-2 ring-blue-600' : ''
-              }`}
+              className={`cursor-pointer hover:shadow-lg transition-all ${selectedCategory === category.category ? 'ring-2 ring-blue-600' : ''
+                }`}
               onClick={() => setSelectedCategory(category.category)}
             >
               <CardContent className="p-4 text-center space-y-2">
@@ -73,7 +77,9 @@ export default function CustomerHome() {
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="ALL">
+                    All Categories
+                  </SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.category} value={cat.category}>{cat.name}</SelectItem>
                   ))}

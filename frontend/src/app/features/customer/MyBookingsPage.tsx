@@ -10,10 +10,14 @@ import { Calendar, MapPin, DollarSign } from 'lucide-react';
 export default function MyBookingsPage() {
   const queryClient = useQueryClient();
 
-  const { data: bookings, isLoading } = useQuery({
-    queryKey: ['customer-bookings'],
-    queryFn: bookingService.getMyBookings,
-  });
+  const { data, isLoading } = useQuery({
+  queryKey: ['customer-bookings'],
+  queryFn: bookingService.getMyBookings,
+});
+
+const bookings = Array.isArray(data)
+  ? data
+  : data?.data || [];
 
   const startServiceMutation = useMutation({
     mutationFn: (id: string) => bookingService.startService(id),
