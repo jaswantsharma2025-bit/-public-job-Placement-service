@@ -1,774 +1,774 @@
-Create a production-ready frontend application for a startup called INSTAFF.
+// Create a production-ready frontend application for a startup called INSTAFF.
 
-INSTAFF is an on-demand workforce fulfillment platform that connects customers with verified workers.
+// INSTAFF is an on-demand workforce fulfillment platform that connects customers with verified workers.
 
-Think:
+// Think:
 
-Urban Company
-Apna
-WorkIndia
-Local staffing agency
+// Urban Company
+// Apna
+// WorkIndia
+// Local staffing agency
 
-combined into one platform.
+// combined into one platform.
 
-TECH STACK
+// TECH STACK
 
-Frontend:
+// Frontend:
 
-Next.js 15
-React 19
-TypeScript
-Tailwind CSS
-Shadcn UI
-React Query (TanStack Query)
-Axios
-React Hook Form
-Zod
-Sonner Toast
-Framer Motion
-Lucide Icons
+// Next.js 15
+// React 19
+// TypeScript
+// Tailwind CSS
+// Shadcn UI
+// React Query (TanStack Query)
+// Axios
+// React Hook Form
+// Zod
+// Sonner Toast
+// Framer Motion
+// Lucide Icons
 
-Folder:
+// Folder:
 
-frontend/
+// frontend/
 
-Structure:
+// Structure:
 
-frontend/
-├── app/
-├── components/
-├── features/
-├── services/
-├── hooks/
-├── store/
-├── types/
-├── utils/
-├── layouts/
-├── public/
+// frontend/
+// ├── app/
+// ├── components/
+// ├── features/
+// ├── services/
+// ├── hooks/
+// ├── store/
+// ├── types/
+// ├── utils/
+// ├── layouts/
+// ├── public/
 
-Mobile-first.
+// Mobile-first.
 
-Fully responsive.
+// Fully responsive.
 
-Professional SaaS startup UI.
+// Professional SaaS startup UI.
 
-No flashy colors.
+// No flashy colors.
 
-Clean.
+// Clean.
 
-Modern.
+// Modern.
 
-Minimal.
+// Minimal.
 
-Fast.
+// Fast.
 
-IMPORTANT BACKEND ALIGNMENT
+// IMPORTANT BACKEND ALIGNMENT
 
-The frontend MUST use the exact backend field names.
+// The frontend MUST use the exact backend field names.
 
-Do NOT rename fields.
+// Do NOT rename fields.
 
-Use exact API payload keys.
+// Use exact API payload keys.
 
-Examples:
+// Examples:
 
-User:
+// User:
 
-name
-phone
-password
-role
+// name
+// phone
+// password
+// role
 
-Roles:
+// Roles:
 
-CUSTOMER
-WORKER
-ADMIN
-EMPLOYER
+// CUSTOMER
+// WORKER
+// ADMIN
+// EMPLOYER
 
-Worker Skill Categories:
+// Worker Skill Categories:
 
-MAID
-COOK
-DRIVER
-NURSE
-PLUMBER
-ELECTRICIAN
+// MAID
+// COOK
+// DRIVER
+// NURSE
+// PLUMBER
+// ELECTRICIAN
 
-Booking Status:
+// Booking Status:
 
-PENDING
-ACCEPTED
-REJECTED
-IN_PROGRESS
-COMPLETED
-CANCELLED
-NO_SHOW
+// PENDING
+// ACCEPTED
+// REJECTED
+// IN_PROGRESS
+// COMPLETED
+// CANCELLED
+// NO_SHOW
 
-Booking Type:
+// Booking Type:
 
-INSTANT
-SCHEDULED
+// INSTANT
+// SCHEDULED
 
-Payment Status:
+// Payment Status:
 
-PENDING
-PAID
-API BASE
-http://localhost:5000/api
+// PENDING
+// PAID
+// API BASE
+// http://localhost:5000/api
 
-Create:
+// Create:
 
-services/api.ts
+// services/api.ts
 
-Axios instance.
+// Axios instance.
 
-JWT interceptor.
+// JWT interceptor.
 
-Token storage.
+// Token storage.
 
-Auto logout on 401.
+// Auto logout on 401.
 
-AUTH MODULE
+// AUTH MODULE
 
-Pages:
+// Pages:
 
-/auth/login
-/auth/register
+// /auth/login
+// /auth/register
 
-Register form:
+// Register form:
 
-name
-phone
-password
-role
+// name
+// phone
+// password
+// role
 
-Role options:
+// Role options:
 
-CUSTOMER
-WORKER
+// CUSTOMER
+// WORKER
 
-Employer:
+// Employer:
 
-Coming Soon Badge
+// Coming Soon Badge
 
-Admin:
+// Admin:
 
-Hidden
+// Hidden
 
-Login:
+// Login:
 
-phone
-password
+// phone
+// password
 
-Store:
+// Store:
 
-token
-user
-role
+// token
+// user
+// role
 
-Show success/error toasts.
+// Show success/error toasts.
 
-LANDING PAGE
+// LANDING PAGE
 
-Hero:
+// Hero:
 
-Verified Workers in Minutes
+// Verified Workers in Minutes
 
-Search bar.
+// Search bar.
 
-Categories.
+// Categories.
 
-CTA buttons.
+// CTA buttons.
 
-Popular services.
+// Popular services.
 
-Worker statistics.
+// Worker statistics.
 
-Customer testimonials.
+// Customer testimonials.
 
-Footer.
+// Footer.
 
-CUSTOMER PORTAL
+// CUSTOMER PORTAL
 
-Route:
+// Route:
 
-/customer
+// /customer
 
-Dashboard cards:
+// Dashboard cards:
 
-Total Bookings
-Active Bookings
-Completed Services
-Pending Payments
-CUSTOMER HOME
+// Total Bookings
+// Active Bookings
+// Completed Services
+// Pending Payments
+// CUSTOMER HOME
 
-Categories grid:
+// Categories grid:
 
-Maid
+// Maid
 
-Cook
+// Cook
 
-Driver
+// Driver
 
-Nurse
+// Nurse
 
-Plumber
+// Plumber
 
-Electrician
+// Electrician
 
-Use icons.
+// Use icons.
 
-Cards.
+// Cards.
 
-Ratings.
+// Ratings.
 
-CATEGORY DISCOVERY
+// CATEGORY DISCOVERY
 
-Use backend:
+// Use backend:
 
-GET
+// GET
 
-/api/workers
+// /api/workers
 
-Filters:
+// Filters:
 
-skillCategory
-city
-isAvailable
-isVerified
+// skillCategory
+// city
+// isAvailable
+// isVerified
 
-UI Filters:
+// UI Filters:
 
-Available Only
-Verified Only
-City
-Category
+// Available Only
+// Verified Only
+// City
+// Category
 
-Worker cards:
+// Worker cards:
 
-name
-rating
-experience
-city
-expectedSalary
-isVerified
+// name
+// rating
+// experience
+// city
+// expectedSalary
+// isVerified
 
-Buttons:
+// Buttons:
 
-View Profile
-Book Now
-WORKER DETAILS PAGE
+// View Profile
+// Book Now
+// WORKER DETAILS PAGE
 
-Route:
+// Route:
 
-/workers/[id]
+// /workers/[id]
 
-Fetch:
+// Fetch:
 
-GET /api/workers/:id
+// GET /api/workers/:id
 
-Show:
+// Show:
 
-user.name
-phone
-skillCategory
-experience
-rating
-city
-state
-expectedSalary
-isVerified
+// user.name
+// phone
+// skillCategory
+// experience
+// rating
+// city
+// state
+// expectedSalary
+// isVerified
 
-Reviews section.
+// Reviews section.
 
-Book Now button.
+// Book Now button.
 
-BOOKING FLOW
+// BOOKING FLOW
 
-Route:
+// Route:
 
-/booking/create
+// /booking/create
 
-Fields MUST match backend:
+// Fields MUST match backend:
 
-workerId
-bookingType
-serviceCategory
-address
-city
-scheduledDate
-durationMinutes
-servicePrice
-notes
+// workerId
+// bookingType
+// serviceCategory
+// address
+// city
+// scheduledDate
+// durationMinutes
+// servicePrice
+// notes
 
-Booking Type:
+// Booking Type:
 
-INSTANT
-SCHEDULED
+// INSTANT
+// SCHEDULED
 
-Show booking summary.
+// Show booking summary.
 
-Create booking button.
+// Create booking button.
 
-Toast success.
+// Toast success.
 
-Redirect to My Bookings.
+// Redirect to My Bookings.
 
-MY BOOKINGS PAGE
+// MY BOOKINGS PAGE
 
-Route:
+// Route:
 
-/customer/bookings
+// /customer/bookings
 
-Fetch:
+// Fetch:
 
-GET /api/bookings/my
+// GET /api/bookings/my
 
-Cards.
+// Cards.
 
-Status badges.
+// Status badges.
 
-Actions based on status.
+// Actions based on status.
 
-BOOKING ACTIONS
+// BOOKING ACTIONS
 
-PENDING
+// PENDING
 
-Waiting for worker response
+// Waiting for worker response
 
-ACCEPTED
+// ACCEPTED
 
-Buttons:
+// Buttons:
 
-Start Service
-Request Replacement
-Cancel
+// Start Service
+// Request Replacement
+// Cancel
 
-IN_PROGRESS
+// IN_PROGRESS
 
-Button:
+// Button:
 
-Complete Service
+// Complete Service
 
-COMPLETED
+// COMPLETED
 
-Buttons:
+// Buttons:
 
-Leave Review
+// Leave Review
 
-NO_SHOW
+// NO_SHOW
 
-Button:
+// Button:
 
-Request Replacement
-MAP TRACKING PAGE
+// Request Replacement
+// MAP TRACKING PAGE
 
-Design Uber-style tracking page.
+// Design Uber-style tracking page.
 
-But backend not implemented.
+// But backend not implemented.
 
-Show:
+// Show:
 
-Live Tracking
-Coming Soon
+// Live Tracking
+// Coming Soon
 
-Use beautiful map placeholder.
+// Use beautiful map placeholder.
 
-PAYMENTS PAGE
+// PAYMENTS PAGE
 
-Backend exists partially.
+// Backend exists partially.
 
-Real payments not implemented.
+// Real payments not implemented.
 
-Show:
+// Show:
 
-Cash On Delivery
+// Cash On Delivery
 
-UPI
+// UPI
 
-Card
+// Card
 
-Wallet
+// Wallet
 
-All:
+// All:
 
-Coming Soon
+// Coming Soon
 
-Display toast:
+// Display toast:
 
-Online payments launching soon.
-COMPLAINTS PAGE
+// Online payments launching soon.
+// COMPLAINTS PAGE
 
-Route:
+// Route:
 
-/customer/complaints
+// /customer/complaints
 
-Create complaint.
+// Create complaint.
 
-Fields:
+// Fields:
 
-bookingId
-againstUserId
-reason
-description
+// bookingId
+// againstUserId
+// reason
+// description
 
-My complaints.
+// My complaints.
 
-Status:
+// Status:
 
-OPEN
-RESOLVED
-REJECTED
-REVIEW PAGE
+// OPEN
+// RESOLVED
+// REJECTED
+// REVIEW PAGE
 
-Create Review:
+// Create Review:
 
-bookingId
-rating
-comment
+// bookingId
+// rating
+// comment
 
-Fetch:
+// Fetch:
 
-GET /api/reviews/worker/:workerId
+// GET /api/reviews/worker/:workerId
 
-Star ratings.
+// Star ratings.
 
-CUSTOMER PROFILE
+// CUSTOMER PROFILE
 
-Route:
+// Route:
 
-/customer/profile
+// /customer/profile
 
-Fields:
+// Fields:
 
-gender
-address
-city
-state
-latitude
-longitude
+// gender
+// address
+// city
+// state
+// latitude
+// longitude
 
-Edit profile.
+// Edit profile.
 
-Save.
+// Save.
 
-Toast success.
+// Toast success.
 
-WORKER PORTAL
+// WORKER PORTAL
 
-Route:
+// Route:
 
-/worker
+// /worker
 
-Dashboard:
+// Dashboard:
 
-Cards:
+// Cards:
 
-Today's Jobs
-Completed Jobs
-Rating
-Earnings
-WORKER PROFILE
+// Today's Jobs
+// Completed Jobs
+// Rating
+// Earnings
+// WORKER PROFILE
 
-Fields:
+// Fields:
 
-aadhaarNumber
-gender
-skillCategory
-experience
-expectedSalary
-city
-state
-latitude
-longitude
+// aadhaarNumber
+// gender
+// skillCategory
+// experience
+// expectedSalary
+// city
+// state
+// latitude
+// longitude
 
-Verification Status:
+// Verification Status:
 
-Pending
-Verified
-Rejected
+// Pending
+// Verified
+// Rejected
 
-Badge.
+// Badge.
 
-WORKER AVAILABILITY
+// WORKER AVAILABILITY
 
-Toggle:
+// Toggle:
 
-isAvailable
+// isAvailable
 
-Online
+// Online
 
-Offline
+// Offline
 
-Patch:
+// Patch:
 
-/api/worker/availability
-WORKER LOCATION
+// /api/worker/availability
+// WORKER LOCATION
 
-Page:
+// Page:
 
-/worker/location
+// /worker/location
 
-Update:
+// Update:
 
-latitude
-longitude
-city
-state
+// latitude
+// longitude
+// city
+// state
 
-Map UI.
+// Map UI.
 
-Use browser geolocation.
+// Use browser geolocation.
 
-WORKER BOOKINGS
+// WORKER BOOKINGS
 
-Fetch:
+// Fetch:
 
-GET /api/bookings/worker/my
+// GET /api/bookings/worker/my
 
-Actions:
+// Actions:
 
-Accept
+// Accept
 
-Reject
+// Reject
 
-Show status timeline.
+// Show status timeline.
 
-WORKER EARNINGS
+// WORKER EARNINGS
 
-Fetch:
+// Fetch:
 
-GET /api/worker/earnings
+// GET /api/worker/earnings
 
-Show:
+// Show:
 
-totalBookings
-totalEarnings
+// totalBookings
+// totalEarnings
 
-Chart.
+// Chart.
 
-ADMIN PANEL
+// ADMIN PANEL
 
-Route:
+// Route:
 
-/admin
+// /admin
 
-Professional dashboard.
+// Professional dashboard.
 
-Sidebar.
+// Sidebar.
 
-Analytics.
+// Analytics.
 
-Tables.
+// Tables.
 
-Search.
+// Search.
 
-Filters.
+// Filters.
 
-ADMIN ANALYTICS
+// ADMIN ANALYTICS
 
-Fetch:
+// Fetch:
 
-GET /api/admin/analytics
+// GET /api/admin/analytics
 
-Show:
+// Show:
 
-totalCustomers
-totalWorkers
-verifiedWorkers
-totalBookings
-completedBookings
-totalRevenue
+// totalCustomers
+// totalWorkers
+// verifiedWorkers
+// totalBookings
+// completedBookings
+// totalRevenue
 
-Charts.
+// Charts.
 
-Cards.
+// Cards.
 
-PENDING WORKERS
+// PENDING WORKERS
 
-Fetch:
+// Fetch:
 
-GET /api/admin/workers/pending
+// GET /api/admin/workers/pending
 
-Approve.
+// Approve.
 
-Reject.
+// Reject.
 
-Modal.
+// Modal.
 
-Reason field.
+// Reason field.
 
-WORKER MANAGEMENT
+// WORKER MANAGEMENT
 
-Suspend.
+// Suspend.
 
-Reactivate.
+// Reactivate.
 
-Status badges.
+// Status badges.
 
-BOOKINGS MANAGEMENT
+// BOOKINGS MANAGEMENT
 
-Fetch:
+// Fetch:
 
-GET /api/admin/bookings
+// GET /api/admin/bookings
 
-Admin actions:
+// Admin actions:
 
-Force Complete
-Force Cancel
-Reassign Worker
-REPLACEMENT MANAGEMENT
+// Force Complete
+// Force Cancel
+// Reassign Worker
+// REPLACEMENT MANAGEMENT
 
-Fetch:
+// Fetch:
 
-GET /api/admin/bookings/:id/replacement-candidates
+// GET /api/admin/bookings/:id/replacement-candidates
 
-Choose worker.
+// Choose worker.
 
-Assign.
+// Assign.
 
-Toast.
+// Toast.
 
-COMPLAINT MANAGEMENT
+// COMPLAINT MANAGEMENT
 
-Fetch:
+// Fetch:
 
-GET /api/complaints/admin
+// GET /api/complaints/admin
 
-Actions:
+// Actions:
 
-Resolve.
+// Resolve.
 
-Reject.
+// Reject.
 
-Admin Notes.
+// Admin Notes.
 
-EMPLOYER PANEL
+// EMPLOYER PANEL
 
-PHASE 1:
+// PHASE 1:
 
-NOT IMPLEMENTED.
+// NOT IMPLEMENTED.
 
-Create route:
+// Create route:
 
-/employer
+// /employer
 
-Professional page.
+// Professional page.
 
-Large illustration.
+// Large illustration.
 
-Text:
+// Text:
 
-Employer Portal
+// Employer Portal
 
-Bulk Hiring
-Attendance
-Payroll
-Workforce Management
+// Bulk Hiring
+// Attendance
+// Payroll
+// Workforce Management
 
-Coming Soon in Phase 2
+// Coming Soon in Phase 2
 
-No backend integration.
+// No backend integration.
 
-AI FEATURES
+// AI FEATURES
 
-Create section.
+// Create section.
 
-Everything disabled.
+// Everything disabled.
 
-Cards:
+// Cards:
 
-AI Worker Matching
-AI Lead Bot
-AI WhatsApp Bot
-AI Call Bot
-AI Fraud Detection
-AI Retention Bot
+// AI Worker Matching
+// AI Lead Bot
+// AI WhatsApp Bot
+// AI Call Bot
+// AI Fraud Detection
+// AI Retention Bot
 
-Badge:
+// Badge:
 
-Coming Soon
-NOTIFICATION SYSTEM
+// Coming Soon
+// NOTIFICATION SYSTEM
 
-Install:
+// Install:
 
-sonner
+// sonner
 
-Create global toast provider.
+// Create global toast provider.
 
-Show toast for:
+// Show toast for:
 
-Login
+// Login
 
-Register
+// Register
 
-Booking Created
+// Booking Created
 
-Booking Accepted
+// Booking Accepted
 
-Booking Rejected
+// Booking Rejected
 
-Complaint Submitted
+// Complaint Submitted
 
-Review Submitted
+// Review Submitted
 
-Worker Approved
+// Worker Approved
 
-Worker Suspended
+// Worker Suspended
 
-Replacement Requested
+// Replacement Requested
 
-Payment Coming Soon
+// Payment Coming Soon
 
-RESPONSIVENESS
+// RESPONSIVENESS
 
-Must support:
+// Must support:
 
-320px
-375px
-768px
-1024px
-1440px
+// 320px
+// 375px
+// 768px
+// 1024px
+// 1440px
 
-Mobile first.
+// Mobile first.
 
-Sidebar collapses.
+// Sidebar collapses.
 
-Bottom navigation for mobile.
+// Bottom navigation for mobile.
 
-Desktop sidebar for large screens.
+// Desktop sidebar for large screens.
 
-DARK MODE
+// DARK MODE
 
-Implement:
+// Implement:
 
-Light
-Dark
-System
+// Light
+// Dark
+// System
 
-Persist preference.
+// Persist preference.
 
-DESIGN LANGUAGE
+// DESIGN LANGUAGE
 
-Use:
+// Use:
 
-shadcn cards
-rounded-xl
-subtle shadows
-glassmorphism only in hero section
-professional startup feel
-no neon colors
-clean dashboards
-modern admin panel
-FINAL REQUIREMENT
+// shadcn cards
+// rounded-xl
+// subtle shadows
+// glassmorphism only in hero section
+// professional startup feel
+// no neon colors
+// clean dashboards
+// modern admin panel
+// FINAL REQUIREMENT
 
-Generate every screen, route, component, modal, form, table, dashboard, API service, TypeScript types, hooks, loading states, empty states, error states and responsive layouts.
+// Generate every screen, route, component, modal, form, table, dashboard, API service, TypeScript types, hooks, loading states, empty states, error states and responsive layouts.
 
-Anything not available in backend must still have UI and clearly show:
+// Anything not available in backend must still have UI and clearly show:
 
-Coming Soon
+// Coming Soon
 
-Never create APIs that do not exist.
+// Never create APIs that do not exist.
 
-Frontend must be directly connectable to the provided backend with minimal modifications.
+// Frontend must be directly connectable to the provided backend with minimal modifications.
