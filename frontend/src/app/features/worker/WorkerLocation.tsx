@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import WorkerLayout from '../../layouts/WorkerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { workerService } from '../../services/api';
+import { workerService, profileService } from '../../services/api';
 import { MapPin, Navigation } from 'lucide-react';
 
 interface LocationForm {
@@ -17,9 +19,36 @@ interface LocationForm {
 }
 
 export default function WorkerLocation() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LocationForm>();
+  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<LocationForm>();
+
+  const { data: existingProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ['worker-profile'],
+    queryFn: profileService.getWorkerProfile,
+    retry: false,
+    throwOnError: false,
+  });
+
+  const profileComplete = !!(
+    existingProfile?.aadhaarNumber &&
+    existingProfile?.skillCategory &&
+    existingProfile?.experience != null &&
+    existingProfile?.expectedSalary != null
+  );
+
+  // Populate location fields when profile data arrives after refresh
+  useEffect(() => {
+    if (existingProfile) {
+      reset({
+        latitude: existingProfile.latitude ?? undefined,
+        longitude: existingProfile.longitude ?? undefined,
+        city: existingProfile.city ?? '',
+        state: existingProfile.state ?? '',
+      });
+    }
+  }, [existingProfile, reset]);
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -43,6 +72,12 @@ export default function WorkerLocation() {
   };
 
   const onSubmit = async (data: LocationForm) => {
+    if (!profileComplete) {
+      toast.error('Please complete your profile first before updating location.');
+      navigate('/worker/profile');
+      return;
+    }
+
     try {
       setLoading(true);
       await workerService.updateLocation(data);
@@ -62,6 +97,29 @@ export default function WorkerLocation() {
           <p className="text-neutral-600 dark:text-neutral-400 mt-1">Keep your location updated for better job matches</p>
         </div>
 
+        {!profileLoading && !profileComplete && (
+          <Card className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
+            <CardContent className="p-6 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                  ⚠ Complete your profile first
+                </p>
+                <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                  You must save your Aadhaar number, skill, experience and salary before updating your location.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 border-orange-400 text-orange-700 dark:text-orange-300"
+                onClick={() => navigate('/worker/profile')}
+              >
+                Go to Profile
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Current Location</CardTitle>
@@ -79,7 +137,7 @@ export default function WorkerLocation() {
               variant="outline"
               className="w-full"
               onClick={getCurrentLocation}
-              disabled={gettingLocation}
+              disabled={gettingLocation || !profileComplete}
             >
               <Navigation className="w-4 h-4 mr-2" />
               {gettingLocation ? 'Getting location...' : 'Use Current Location'}
@@ -92,59 +150,71 @@ export default function WorkerLocation() {
             <CardTitle>Location Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="any"
-                    placeholder="e.g., 28.6139"
-                    {...register('latitude', { required: 'Latitude is required', valueAsNumber: true })}
-                  />
-                  {errors.latitude && <p className="text-sm text-red-500">{errors.latitude.message}</p>}
+            {profileLoading ? (
+              <div className="text-center py-8">Loading location...</div>
+            ) : (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="latitude">Latitude</Label>
+                    <Input
+                      id="latitude"
+                      type="number"
+                      step="any"
+                      placeholder="e.g., 28.6139"
+                      disabled={!profileComplete}
+                      {...register('latitude', { required: 'Latitude is required', valueAsNumber: true })}
+                    />
+                    {errors.latitude && <p className="text-sm text-red-500">{errors.latitude.message}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="longitude">Longitude</Label>
+                    <Input
+                      id="longitude"
+                      type="number"
+                      step="any"
+                      placeholder="e.g., 77.2090"
+                      disabled={!profileComplete}
+                      {...register('longitude', { required: 'Longitude is required', valueAsNumber: true })}
+                    />
+                    {errors.longitude && <p className="text-sm text-red-500">{errors.longitude.message}</p>}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="any"
-                    placeholder="e.g., 77.2090"
-                    {...register('longitude', { required: 'Longitude is required', valueAsNumber: true })}
-                  />
-                  {errors.longitude && <p className="text-sm text-red-500">{errors.longitude.message}</p>}
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      placeholder="Enter city"
+                      disabled={!profileComplete}
+                      {...register('city', { required: 'City is required' })}
+                    />
+                    {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Enter city"
-                    {...register('city', { required: 'City is required' })}
-                  />
-                  {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      placeholder="Enter state"
+                      disabled={!profileComplete}
+                      {...register('state', { required: 'State is required' })}
+                    />
+                    {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    placeholder="Enter state"
-                    {...register('state', { required: 'State is required' })}
-                  />
-                  {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Updating...' : 'Update Location'}
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || !profileComplete}
+                >
+                  {loading ? 'Updating...' : 'Update Location'}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
 

@@ -3,12 +3,14 @@ import WorkerLayout from '../../layouts/WorkerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
-import { bookingService, workerService } from '../../services/api';
+import { bookingService, workerService, profileService } from '../../services/api';
 import { Calendar, CheckCircle, Star, DollarSign } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router';
 
 export default function WorkerDashboard() {
+  const navigate = useNavigate();
   const [isAvailable, setIsAvailable] = useState(true);
 
   const { data: bookings } = useQuery({
@@ -21,6 +23,27 @@ export default function WorkerDashboard() {
     queryFn: workerService.getEarnings,
   });
 
+  const { data: existingProfile } = useQuery({
+    queryKey: ['worker-profile'],
+    queryFn: profileService.getWorkerProfile,
+    retry: false,
+    throwOnError: false,
+  });
+
+  // Sync availability toggle from saved profile on load/refresh
+  useEffect(() => {
+    if (existingProfile) {
+      setIsAvailable(existingProfile.isAvailable ?? true);
+    }
+  }, [existingProfile]);
+
+  const profileComplete = !!(
+    existingProfile?.aadhaarNumber &&
+    existingProfile?.skillCategory &&
+    existingProfile?.experience != null &&
+    existingProfile?.expectedSalary != null
+  );
+
   const todaysJobs = bookings?.filter((b: any) => {
     const today = new Date().toDateString();
     return new Date(b.createdAt).toDateString() === today;
@@ -30,6 +53,12 @@ export default function WorkerDashboard() {
   const totalEarnings = earnings?.totalEarnings || 0;
 
   const handleAvailabilityToggle = async (checked: boolean) => {
+    if (!profileComplete) {
+      toast.error('Please complete your profile before changing availability.');
+      navigate('/worker/profile');
+      return;
+    }
+
     try {
       await workerService.updateAvailability(checked);
       setIsAvailable(checked);
@@ -61,11 +90,24 @@ export default function WorkerDashboard() {
                   id="availability"
                   checked={isAvailable}
                   onCheckedChange={handleAvailabilityToggle}
+                  disabled={!profileComplete}
                 />
-                <Label htmlFor="availability" className="cursor-pointer">
+                <Label
+                  htmlFor="availability"
+                  className={`cursor-pointer ${!profileComplete ? 'text-neutral-400' : ''}`}
+                  title={!profileComplete ? 'Complete your profile first' : ''}
+                >
                   {isAvailable ? 'Online' : 'Offline'}
                 </Label>
               </div>
+              {!profileComplete && (
+                <p
+                  className="text-xs text-orange-500 mt-2 cursor-pointer underline"
+                  onClick={() => navigate('/worker/profile')}
+                >
+                  Complete profile to go online
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

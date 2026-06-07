@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import CustomerLayout from '../../layouts/CustomerLayout';
@@ -9,15 +10,12 @@ import { Calendar, MapPin, DollarSign } from 'lucide-react';
 
 export default function MyBookingsPage() {
   const queryClient = useQueryClient();
+  const [replacementReason, setReplacementReason] = useState<Record<string, string>>({});
 
-  const { data, isLoading } = useQuery({
-  queryKey: ['customer-bookings'],
-  queryFn: bookingService.getMyBookings,
-});
-
-const bookings = Array.isArray(data)
-  ? data
-  : data?.data || [];
+  const { data: bookings = [], isLoading } = useQuery({
+    queryKey: ['customer-bookings'],
+    queryFn: bookingService.getMyBookings,
+  });
 
   const startServiceMutation = useMutation({
     mutationFn: (id: string) => bookingService.startService(id),
@@ -25,8 +23,8 @@ const bookings = Array.isArray(data)
       queryClient.invalidateQueries({ queryKey: ['customer-bookings'] });
       toast.success('Service started!');
     },
-    onError: () => {
-      toast.error('Failed to start service');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to start service');
     },
   });
 
@@ -36,8 +34,8 @@ const bookings = Array.isArray(data)
       queryClient.invalidateQueries({ queryKey: ['customer-bookings'] });
       toast.success('Service completed!');
     },
-    onError: () => {
-      toast.error('Failed to complete service');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to complete service');
     },
   });
 
@@ -47,21 +45,42 @@ const bookings = Array.isArray(data)
       queryClient.invalidateQueries({ queryKey: ['customer-bookings'] });
       toast.success('Booking cancelled');
     },
-    onError: () => {
-      toast.error('Failed to cancel booking');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to cancel booking');
     },
   });
 
   const requestReplacementMutation = useMutation({
-    mutationFn: (id: string) => bookingService.requestReplacement(id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      bookingService.requestReplacement(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-bookings'] });
       toast.success('Replacement requested');
     },
-    onError: () => {
-      toast.error('Failed to request replacement');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to request replacement');
     },
   });
+
+  const markNoShowMutation = useMutation({
+    mutationFn: (id: string) => bookingService.markNoShow(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-bookings'] });
+      toast.success('Marked as no-show');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to mark no-show');
+    },
+  });
+
+  const handleRequestReplacement = (id: string) => {
+    const reason = replacementReason[id]?.trim();
+    if (!reason) {
+      toast.error('Please enter a reason for replacement');
+      return;
+    }
+    requestReplacementMutation.mutate({ id, reason });
+  };
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -100,8 +119,11 @@ const bookings = Array.isArray(data)
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{booking.serviceCategory}</CardTitle>
+                      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 font-mono">
+                        Booking ID: {booking.id}
+                      </p>
                       <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                        Worker: {booking.worker?.user?.name || booking.worker?.name || 'N/A'}
+                        Worker: {booking.workerName || 'N/A'}
                       </p>
                     </div>
                     {getStatusBadge(booking.status)}
@@ -145,20 +167,44 @@ const bookings = Array.isArray(data)
                         <Button
                           size="sm"
                           onClick={() => startServiceMutation.mutate(booking.id)}
+                          disabled={startServiceMutation.isPending}
                         >
                           Start Service
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => requestReplacementMutation.mutate(booking.id)}
+                          onClick={() => markNoShowMutation.mutate(booking.id)}
+                          disabled={markNoShowMutation.isPending}
                         >
-                          Request Replacement
+                          Mark No-Show
                         </Button>
+                        <div className="flex gap-2 w-full items-center">
+                          <input
+                            className="flex-1 border rounded px-2 py-1 text-sm"
+                            placeholder="Reason for replacement..."
+                            value={replacementReason[booking.id] || ''}
+                            onChange={(e) =>
+                              setReplacementReason((prev) => ({
+                                ...prev,
+                                [booking.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRequestReplacement(booking.id)}
+                            disabled={requestReplacementMutation.isPending}
+                          >
+                            Request Replacement
+                          </Button>
+                        </div>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => cancelBookingMutation.mutate(booking.id)}
+                          disabled={cancelBookingMutation.isPending}
                         >
                           Cancel
                         </Button>
@@ -169,6 +215,7 @@ const bookings = Array.isArray(data)
                       <Button
                         size="sm"
                         onClick={() => completeServiceMutation.mutate(booking.id)}
+                        disabled={completeServiceMutation.isPending}
                       >
                         Complete Service
                       </Button>
@@ -181,13 +228,27 @@ const bookings = Array.isArray(data)
                     )}
 
                     {booking.status === 'NO_SHOW' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => requestReplacementMutation.mutate(booking.id)}
-                      >
-                        Request Replacement
-                      </Button>
+                      <div className="flex gap-2 w-full items-center">
+                        <input
+                          className="flex-1 border rounded px-2 py-1 text-sm"
+                          placeholder="Reason for replacement..."
+                          value={replacementReason[booking.id] || ''}
+                          onChange={(e) =>
+                            setReplacementReason((prev) => ({
+                              ...prev,
+                              [booking.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRequestReplacement(booking.id)}
+                          disabled={requestReplacementMutation.isPending}
+                        >
+                          Request Replacement
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardContent>

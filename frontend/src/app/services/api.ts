@@ -37,20 +37,12 @@ api.interceptors.response.use(
 
 export const authService = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    const response = await api.post(
-      '/auth/login',
-      data
-    );
-
+    const response = await api.post('/auth/login', data);
     return response.data.data;
   },
 
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    const response = await api.post(
-      '/auth/register',
-      data
-    );
-
+    const response = await api.post('/auth/register', data);
     return response.data.data;
   },
 };
@@ -83,7 +75,7 @@ export const workerService = {
 
   getEarnings: async () => {
     const response = await api.get('/worker/earnings');
-    return response.data;
+    return response.data.data;
   },
 };
 
@@ -94,7 +86,7 @@ export const bookingService = {
     serviceCategory: string;
     address: string;
     city: string;
-    scheduledDate?: string;
+    scheduledDate: string;
     durationMinutes: number;
     servicePrice: number;
     notes?: string;
@@ -123,27 +115,13 @@ export const bookingService = {
     return response.data;
   },
 
-  startService: async (
-    id: string
-  ) => {
-
-    const response =
-      await api.patch(
-        `/bookings/${id}/customer-start`
-      );
-
+  startService: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/customer-start`);
     return response.data;
   },
 
-  completeService: async (
-    id: string
-  ) => {
-
-    const response =
-      await api.patch(
-        `/bookings/${id}/customer-complete`
-      );
-
+  completeService: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/customer-complete`);
     return response.data;
   },
 
@@ -152,19 +130,18 @@ export const bookingService = {
     return response.data;
   },
 
-  requestReplacement: async (
-    id: string,
-    reason: string
-  ) => {
+  markNoShow: async (id: string) => {
+    const response = await api.patch(`/bookings/${id}/no-show`);
+    return response.data;
+  },
 
-    const response =
-      await api.patch(
-        `/bookings/${id}/replacement`,
-        {
-          reason,
-        }
-      );
+  markPaid: async (id: string, paymentMethod: string) => {
+    const response = await api.patch(`/bookings/${id}/pay`, { paymentMethod });
+    return response.data;
+  },
 
+  requestReplacement: async (id: string, reason: string) => {
+    const response = await api.patch(`/bookings/${id}/replacement`, { reason });
     return response.data;
   },
 };
@@ -199,38 +176,16 @@ export const complaintService = {
 
   getAll: async () => {
     const response = await api.get('/complaints/admin');
+    return response.data.data;
+  },
+
+  resolve: async (id: string, adminNotes?: string) => {
+    const response = await api.patch(`/complaints/admin/${id}/resolve`, { adminNotes });
     return response.data;
   },
 
-  resolve: async (
-    id: string,
-    adminNotes?: string
-  ) => {
-
-    const response =
-      await api.patch(
-        `/complaints/admin/${id}/resolve`,
-        {
-          adminNotes,
-        }
-      );
-
-    return response.data;
-  },
-
-  reject: async (
-    id: string,
-    adminNotes?: string
-  ) => {
-
-    const response =
-      await api.patch(
-        `/complaints/admin/${id}/reject`,
-        {
-          adminNotes,
-        }
-      );
-
+  reject: async (id: string, adminNotes?: string) => {
+    const response = await api.patch(`/complaints/admin/${id}/reject`, { adminNotes });
     return response.data;
   },
 };
@@ -238,37 +193,37 @@ export const complaintService = {
 export const adminService = {
   getAnalytics: async () => {
     const response = await api.get('/admin/analytics');
-    return response.data;
+    return response.data.data;
   },
 
   getPendingWorkers: async () => {
     const response = await api.get('/admin/workers/pending');
+    return response.data.data;
+  },
+
+  approveWorker: async (userId: string) => {
+    const response = await api.patch(`/admin/workers/${userId}/approve`);
     return response.data;
   },
 
-  approveWorker: async (id: string) => {
-    const response = await api.patch(`/admin/workers/${id}/approve`);
+  rejectWorker: async (userId: string, reason: string) => {
+    const response = await api.patch(`/admin/workers/${userId}/reject`, { reason });
     return response.data;
   },
 
-  rejectWorker: async (id: string, reason: string) => {
-    const response = await api.patch(`/admin/workers/${id}/reject`, { reason });
+  suspendWorker: async (userId: string) => {
+    const response = await api.patch(`/admin/workers/${userId}/suspend`);
     return response.data;
   },
 
-  suspendWorker: async (id: string) => {
-    const response = await api.patch(`/admin/workers/${id}/suspend`);
-    return response.data;
-  },
-
-  reactivateWorker: async (id: string) => {
-    const response = await api.patch(`/admin/workers/${id}/reactivate`);
+  reactivateWorker: async (userId: string) => {
+    const response = await api.patch(`/admin/workers/${userId}/reactivate`);
     return response.data;
   },
 
   getAllBookings: async () => {
     const response = await api.get('/admin/bookings');
-    return response.data;
+    return response.data.data;
   },
 
   forceCompleteBooking: async (id: string) => {
@@ -283,22 +238,11 @@ export const adminService = {
 
   getReplacementCandidates: async (bookingId: string) => {
     const response = await api.get(`/admin/bookings/${bookingId}/replacement-candidates`);
-    return response.data;
+    return response.data.data;
   },
 
-  assignReplacement: async (
-    bookingId: string,
-    workerId: string
-  ) => {
-
-    const response =
-      await api.patch(
-        `/admin/bookings/${bookingId}/reassign`,
-        {
-          newWorkerId: workerId,
-        }
-      );
-
+  assignReplacement: async (bookingId: string, workerId: string) => {
+    const response = await api.patch(`/admin/bookings/${bookingId}/reassign`, { newWorkerId: workerId });
     return response.data;
   },
 };
@@ -317,23 +261,12 @@ export const profileService = {
   },
 
   getCustomerProfile: async () => {
-    const response =
-      await api.get(
-        '/customer/profile'
-      );
-
+    const response = await api.get('/customer/profile');
     return response.data.data;
   },
 
-  createCustomerProfile: async (
-    data: any
-  ) => {
-    const response =
-      await api.post(
-        '/customer/profile',
-        data
-      );
-
+  createCustomerProfile: async (data: any) => {
+    const response = await api.post('/customer/profile', data);
     return response.data;
   },
 
@@ -353,11 +286,7 @@ export const profileService = {
   },
 
   getWorkerProfile: async () => {
-    const response =
-      await api.get(
-        '/worker/profile'
-      );
-
-    return response.data;
+    const response = await api.get('/worker/profile');
+    return response.data.data;
   },
 };
