@@ -2,8 +2,17 @@ import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { BarChart3, Users, Calendar, MessageSquare, CheckSquare, LogOut, Menu } from 'lucide-react';
+import { BarChart3, Users, Calendar, MessageSquare, CheckSquare, LogOut, Menu, X, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+
+const navItems = [
+  { path: '/admin', icon: BarChart3, label: 'Dashboard' },
+  { path: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/admin/workers/pending', icon: CheckSquare, label: 'Pending Workers' },
+  { path: '/admin/workers', icon: Users, label: 'Worker Management' },
+  { path: '/admin/bookings', icon: Calendar, label: 'Bookings' },
+  { path: '/admin/complaints', icon: MessageSquare, label: 'Complaints' },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -16,60 +25,86 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     navigate('/auth/login');
   };
 
-  const navItems = [
-    { path: '/admin', icon: BarChart3, label: 'Dashboard' },
-    { path: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/admin/workers/pending', icon: CheckSquare, label: 'Pending Workers' },
-    { path: '/admin/workers', icon: Users, label: 'Worker Management' },
-    { path: '/admin/bookings', icon: Calendar, label: 'Bookings' },
-    { path: '/admin/complaints', icon: MessageSquare, label: 'Complaints' },
-  ];
-
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <nav className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <button className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                <Menu className="w-6 h-6" />
-              </button>
-              <Link to="/admin" className="font-bold text-xl">INSTAFF Admin</Link>
+
+      {/* Top navbar */}
+      <nav className="sticky top-0 z-50 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 h-16 flex items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button
+              className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <Link to="/admin" className="font-black text-lg tracking-widest">
+              INSTAFF <span className="font-normal text-neutral-400 text-sm tracking-normal">Admin</span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex flex-col items-end mr-1">
+              <span className="text-xs font-semibold leading-none">{user?.name}</span>
+              <span className="text-xs text-neutral-400 leading-none mt-0.5">Administrator</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm hidden sm:inline">{user?.name}</span>
-              <ThemeToggle />
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-neutral-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline ml-2">Logout</span>
+            </Button>
           </div>
         </div>
       </nav>
 
       <div className="flex">
-        <aside className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block w-64 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 min-h-[calc(100vh-4rem)] fixed lg:sticky top-16 z-40`}>
-          <nav className="p-4 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === item.path
-                    ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
+
+        {/* Mobile overlay */}
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside className={`
+          fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 z-40
+          bg-white dark:bg-neutral-900
+          border-r border-neutral-200 dark:border-neutral-800
+          transform transition-transform duration-200 ease-in-out
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 lg:sticky lg:top-16
+        `}>
+          <div className="p-3 space-y-0.5 h-full overflow-y-auto">
+            {navItems.map((item) => {
+              const active = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
+                    active
+                      ? 'bg-black dark:bg-white text-white dark:text-black'
+                      : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  {active && <ChevronRight className="w-3 h-3 opacity-60" />}
+                </Link>
+              );
+            })}
+          </div>
         </aside>
 
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 min-w-0 p-4 lg:p-8">
           {children}
         </main>
       </div>
