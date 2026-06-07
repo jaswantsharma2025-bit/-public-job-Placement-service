@@ -4,12 +4,9 @@ export const createComplaint = async (
   userId: string,
   data: any
 ) => {
-  const booking =
-    await prisma.booking.findUnique({
-      where: {
-        id: data.bookingId,
-      },
-    });
+  const booking = await prisma.booking.findUnique({
+    where: { id: data.bookingId },
+  });
 
   if (!booking) {
     throw new Error("Booking not found");
@@ -18,74 +15,69 @@ export const createComplaint = async (
   return prisma.complaint.create({
     data: {
       bookingId: data.bookingId,
-
       raisedByUserId: userId,
-
-      againstUserId:
-        data.againstUserId,
-
+      againstUserId: data.againstUserId,
       reason: data.reason,
-
-      description:
-        data.description,
+      description: data.description,
     },
   });
 };
 
-export const getMyComplaints =
-  async (userId: string) => {
-    return prisma.complaint.findMany({
-      where: {
-        raisedByUserId: userId,
+export const getMyComplaints = async (userId: string) => {
+  return prisma.complaint.findMany({
+    where: { raisedByUserId: userId },
+    include: {
+      booking: {
+        select: {
+          customerName: true,
+          customerPhone: true,
+          workerName: true,
+          workerPhone: true,
+        },
       },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
 
-      orderBy: {
-        createdAt: "desc",
+export const getAllComplaints = async () => {
+  return prisma.complaint.findMany({
+    include: {
+      booking: {
+        select: {
+          customerName: true,
+          customerPhone: true,
+          workerName: true,
+          workerPhone: true,
+        },
       },
-    });
-  };
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
 
-export const getAllComplaints =
-  async () => {
-    return prisma.complaint.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  };
+export const resolveComplaint = async (
+  complaintId: string,
+  adminNotes?: string
+) => {
+  return prisma.complaint.update({
+    where: { id: complaintId },
+    data: {
+      status: "RESOLVED",
+      adminNotes,
+    },
+  });
+};
 
-export const resolveComplaint =
-  async (
-    complaintId: string,
-    adminNotes?: string
-  ) => {
-    return prisma.complaint.update({
-      where: {
-        id: complaintId,
-      },
-
-      data: {
-        status: "RESOLVED",
-
-        adminNotes,
-      },
-    });
-  };
-
-export const rejectComplaint =
-  async (
-    complaintId: string,
-    adminNotes?: string
-  ) => {
-    return prisma.complaint.update({
-      where: {
-        id: complaintId,
-      },
-
-      data: {
-        status: "REJECTED",
-
-        adminNotes,
-      },
-    });
-  };
+export const rejectComplaint = async (
+  complaintId: string,
+  adminNotes?: string
+) => {
+  return prisma.complaint.update({
+    where: { id: complaintId },
+    data: {
+      status: "REJECTED",
+      adminNotes,
+    },
+  });
+};

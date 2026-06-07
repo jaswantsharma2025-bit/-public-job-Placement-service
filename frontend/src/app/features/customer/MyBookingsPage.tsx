@@ -5,12 +5,16 @@ import CustomerLayout from '../../layouts/CustomerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { bookingService } from '../../services/api';
-import { Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Textarea } from '../../components/ui/textarea';
+import { bookingService, reviewService } from '../../services/api';
+import { Calendar, MapPin, DollarSign, Star } from 'lucide-react';
 
 export default function MyBookingsPage() {
   const queryClient = useQueryClient();
   const [replacementReason, setReplacementReason] = useState<Record<string, string>>({});
+  const [reviewOpen, setReviewOpen] = useState<Record<string, boolean>>({});
+  const [reviewRating, setReviewRating] = useState<Record<string, number>>({});
+  const [reviewComment, setReviewComment] = useState<Record<string, string>>({});
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['customer-bookings'],
@@ -73,6 +77,21 @@ export default function MyBookingsPage() {
     },
   });
 
+  const submitReviewMutation = useMutation({
+    mutationFn: ({ bookingId, rating, comment }: { bookingId: string; rating: number; comment?: string }) =>
+      reviewService.create({ bookingId, rating, comment }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['customer-bookings'] });
+      toast.success('Review submitted!');
+      setReviewOpen((prev) => ({ ...prev, [variables.bookingId]: false }));
+      setReviewRating((prev) => ({ ...prev, [variables.bookingId]: 0 }));
+      setReviewComment((prev) => ({ ...prev, [variables.bookingId]: '' }));
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to submit review');
+    },
+  });
+
   const handleRequestReplacement = (id: string) => {
     const reason = replacementReason[id]?.trim();
     if (!reason) {
@@ -80,6 +99,33 @@ export default function MyBookingsPage() {
       return;
     }
     requestReplacementMutation.mutate({ id, reason });
+  };
+
+  const handleSubmitReview = (bookingId: string) => {
+    const rating = reviewRating[bookingId];
+    if (!rating || rating < 1) {
+      toast.error('Please select a star rating');
+      return;
+    }
+    submitReviewMutation.mutate({ bookingId, rating, comment: reviewComment[bookingId] });
+  };
+
+  const StarDisplay = ({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' }) => {
+    const cls = size === 'md' ? 'w-5 h-5' : 'w-3.5 h-3.5';
+    return (
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            className={`${cls} ${
+              s <= rating
+                ? 'fill-black dark:fill-white text-black dark:text-white'
+                : 'text-neutral-300 dark:text-neutral-600'
+            }`}
+          />
+        ))}
+      </div>
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -105,7 +151,7 @@ export default function MyBookingsPage() {
 
         {isLoading ? (
           <div className="text-center py-12">Loading bookings...</div>
-        ) : !bookings || bookings.length === 0 ? (
+        ) : bookings.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-neutral-500">No bookings yet. Find workers to get started!</p>
@@ -164,19 +210,10 @@ export default function MyBookingsPage() {
 
                     {booking.status === 'ACCEPTED' && (
                       <>
-                        <Button
-                          size="sm"
-                          onClick={() => startServiceMutation.mutate(booking.id)}
-                          disabled={startServiceMutation.isPending}
-                        >
+                        <Button size="sm" onClick={() => startServiceMutation.mutate(booking.id)} disabled={startServiceMutation.isPending}>
                           Start Service
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => markNoShowMutation.mutate(booking.id)}
-                          disabled={markNoShowMutation.isPending}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => markNoShowMutation.mutate(booking.id)} disabled={markNoShowMutation.isPending}>
                           Mark No-Show
                         </Button>
                         <div className="flex gap-2 w-full items-center">
@@ -184,47 +221,89 @@ export default function MyBookingsPage() {
                             className="flex-1 border rounded px-2 py-1 text-sm"
                             placeholder="Reason for replacement..."
                             value={replacementReason[booking.id] || ''}
-                            onChange={(e) =>
-                              setReplacementReason((prev) => ({
-                                ...prev,
-                                [booking.id]: e.target.value,
-                              }))
-                            }
+                            onChange={(e) => setReplacementReason((prev) => ({ ...prev, [booking.id]: e.target.value }))}
                           />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRequestReplacement(booking.id)}
-                            disabled={requestReplacementMutation.isPending}
-                          >
+                          <Button size="sm" variant="outline" onClick={() => handleRequestReplacement(booking.id)} disabled={requestReplacementMutation.isPending}>
                             Request Replacement
                           </Button>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => cancelBookingMutation.mutate(booking.id)}
-                          disabled={cancelBookingMutation.isPending}
-                        >
+                        <Button size="sm" variant="destructive" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>
                           Cancel
                         </Button>
                       </>
                     )}
 
                     {booking.status === 'IN_PROGRESS' && (
-                      <Button
-                        size="sm"
-                        onClick={() => completeServiceMutation.mutate(booking.id)}
-                        disabled={completeServiceMutation.isPending}
-                      >
+                      <Button size="sm" onClick={() => completeServiceMutation.mutate(booking.id)} disabled={completeServiceMutation.isPending}>
                         Complete Service
                       </Button>
                     )}
 
                     {booking.status === 'COMPLETED' && (
-                      <Button size="sm" variant="outline">
-                        Leave Review
-                      </Button>
+                      <div className="w-full space-y-3">
+                        {/* Already reviewed — show submitted review */}
+                        {booking.review ? (
+                          <div className="p-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg space-y-1">
+                            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Your Review</p>
+                            <StarDisplay rating={booking.review.rating} size="md" />
+                            {booking.review.comment && (
+                              <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">"{booking.review.comment}"</p>
+                            )}
+                          </div>
+                        ) : reviewOpen[booking.id] ? (
+                          /* Review form */
+                          <div className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 space-y-3 bg-neutral-50 dark:bg-neutral-800">
+                            <p className="text-sm font-semibold">Rate your experience with {booking.workerName}</p>
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setReviewRating((prev) => ({ ...prev, [booking.id]: star }))}
+                                  className="focus:outline-none"
+                                >
+                                  <Star
+                                    className={`w-8 h-8 transition-colors ${
+                                      star <= (reviewRating[booking.id] || 0)
+                                        ? 'fill-black dark:fill-white text-black dark:text-white'
+                                        : 'text-neutral-300 dark:text-neutral-600 hover:text-neutral-400'
+                                    }`}
+                                  />
+                                </button>
+                              ))}
+                              {reviewRating[booking.id] > 0 && (
+                                <span className="ml-2 text-sm text-neutral-500 self-center">
+                                  {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][reviewRating[booking.id]]}
+                                </span>
+                              )}
+                            </div>
+                            <Textarea
+                              placeholder="Share your experience (optional)..."
+                              rows={3}
+                              value={reviewComment[booking.id] || ''}
+                              onChange={(e) => setReviewComment((prev) => ({ ...prev, [booking.id]: e.target.value }))}
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => handleSubmitReview(booking.id)} disabled={submitReviewMutation.isPending}>
+                                {submitReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setReviewOpen((prev) => ({ ...prev, [booking.id]: false }))}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Leave review button */
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setReviewOpen((prev) => ({ ...prev, [booking.id]: true }))}
+                          >
+                            <Star className="w-4 h-4 mr-1" />
+                            Leave Review
+                          </Button>
+                        )}
+                      </div>
                     )}
 
                     {booking.status === 'NO_SHOW' && (
@@ -233,19 +312,9 @@ export default function MyBookingsPage() {
                           className="flex-1 border rounded px-2 py-1 text-sm"
                           placeholder="Reason for replacement..."
                           value={replacementReason[booking.id] || ''}
-                          onChange={(e) =>
-                            setReplacementReason((prev) => ({
-                              ...prev,
-                              [booking.id]: e.target.value,
-                            }))
-                          }
+                          onChange={(e) => setReplacementReason((prev) => ({ ...prev, [booking.id]: e.target.value }))}
                         />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRequestReplacement(booking.id)}
-                          disabled={requestReplacementMutation.isPending}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => handleRequestReplacement(booking.id)} disabled={requestReplacementMutation.isPending}>
                           Request Replacement
                         </Button>
                       </div>

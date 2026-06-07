@@ -9,11 +9,26 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 
+const StarDisplay = ({ rating }: { rating: number }) => (
+  <div className="flex gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => (
+      <Star
+        key={s}
+        className={`w-4 h-4 ${
+          s <= Math.round(rating)
+            ? 'fill-black dark:fill-white text-black dark:text-white'
+            : 'text-neutral-300 dark:text-neutral-600'
+        }`}
+      />
+    ))}
+  </div>
+);
+
 export default function WorkerDashboard() {
   const navigate = useNavigate();
   const [isAvailable, setIsAvailable] = useState(true);
 
-  const { data: bookings } = useQuery({
+  const { data: bookings = [] } = useQuery({
     queryKey: ['worker-bookings'],
     queryFn: bookingService.getWorkerBookings,
   });
@@ -30,7 +45,6 @@ export default function WorkerDashboard() {
     throwOnError: false,
   });
 
-  // Sync availability toggle from saved profile on load/refresh
   useEffect(() => {
     if (existingProfile) {
       setIsAvailable(existingProfile.isAvailable ?? true);
@@ -44,13 +58,17 @@ export default function WorkerDashboard() {
     existingProfile?.expectedSalary != null
   );
 
-  const todaysJobs = bookings?.filter((b: any) => {
+  const todaysJobs = bookings.filter((b: any) => {
     const today = new Date().toDateString();
     return new Date(b.createdAt).toDateString() === today;
-  })?.length || 0;
+  }).length;
 
-  const completedJobs = bookings?.filter((b: any) => b.status === 'COMPLETED')?.length || 0;
+  const completedJobs = bookings.filter((b: any) => b.status === 'COMPLETED').length;
   const totalEarnings = earnings?.totalEarnings || 0;
+
+  // Use rating from worker profile (kept up to date by backend on each review)
+  const rating: number = existingProfile?.rating || 0;
+  const totalReviews: number = existingProfile?.totalReviews || 0;
 
   const handleAvailabilityToggle = async (checked: boolean) => {
     if (!profileComplete) {
@@ -58,20 +76,24 @@ export default function WorkerDashboard() {
       navigate('/worker/profile');
       return;
     }
-
     try {
       await workerService.updateAvailability(checked);
       setIsAvailable(checked);
       toast.success(checked ? 'You are now online' : 'You are now offline');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update availability');
     }
   };
 
   const stats = [
-    { title: "Today's Jobs", value: todaysJobs, icon: Calendar, color: 'text-blue-600' },
-    { title: 'Completed Jobs', value: completedJobs, icon: CheckCircle, color: 'text-green-600' },
-    { title: 'Rating', value: '4.8/5', icon: Star, color: 'text-yellow-600' },
+    { title: "Today's Jobs", value: String(todaysJobs), icon: Calendar, color: 'text-blue-600' },
+    { title: 'Completed Jobs', value: String(completedJobs), icon: CheckCircle, color: 'text-green-600' },
+    {
+      title: 'Avg Rating',
+      value: rating > 0 ? `${rating.toFixed(1)}/5` : 'No ratings yet',
+      icon: Star,
+      color: 'text-yellow-600',
+    },
     { title: 'Earnings', value: `₹${totalEarnings}`, icon: DollarSign, color: 'text-purple-600' },
   ];
 
@@ -123,6 +145,12 @@ export default function WorkerDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{stat.value}</p>
+                {stat.title === 'Avg Rating' && rating > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    <StarDisplay rating={rating} />
+                    <p className="text-xs text-neutral-400">{totalReviews} review{totalReviews !== 1 ? 's' : ''}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -133,17 +161,32 @@ export default function WorkerDashboard() {
             <CardTitle>Recent Bookings</CardTitle>
           </CardHeader>
           <CardContent>
-            {!bookings || bookings.length === 0 ? (
+            {bookings.length === 0 ? (
               <p className="text-center text-neutral-500 py-8">No bookings yet</p>
             ) : (
               <div className="space-y-4">
                 {bookings.slice(0, 5).map((booking: any) => (
                   <div key={booking.id} className="flex justify-between items-center p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg">
-                    <div>
+                    <div className="space-y-0.5">
                       <p className="font-medium">{booking.serviceCategory}</p>
                       <p className="text-sm text-neutral-500">
-                        {booking.customer?.name} • {booking.city}
+                        {booking.customerName || 'Customer'} · {booking.city}
                       </p>
+                      {/* Show star rating inline if review exists */}
+                      {booking.review && (
+                        <div className="flex items-center gap-1 pt-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3 h-3 ${
+                                s <= booking.review.rating
+                                  ? 'fill-black dark:fill-white text-black dark:text-white'
+                                  : 'text-neutral-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className={`text-sm font-medium ${

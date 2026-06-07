@@ -9,6 +9,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { complaintService } from '../../services/api';
+import { Phone, User } from 'lucide-react';
 
 export default function ComplaintManagement() {
   const queryClient = useQueryClient();
@@ -17,7 +18,7 @@ export default function ComplaintManagement() {
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
 
-  const { data: complaints, isLoading } = useQuery({
+  const { data: complaints = [], isLoading } = useQuery({
     queryKey: ['admin-complaints'],
     queryFn: complaintService.getAll,
   });
@@ -32,8 +33,8 @@ export default function ComplaintManagement() {
       setSelectedComplaint(null);
       toast.success('Complaint resolved');
     },
-    onError: () => {
-      toast.error('Failed to resolve complaint');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to resolve complaint');
     },
   });
 
@@ -47,8 +48,8 @@ export default function ComplaintManagement() {
       setSelectedComplaint(null);
       toast.success('Complaint rejected');
     },
-    onError: () => {
-      toast.error('Failed to reject complaint');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to reject complaint');
     },
   });
 
@@ -81,7 +82,7 @@ export default function ComplaintManagement() {
 
         {isLoading ? (
           <div className="text-center py-12">Loading complaints...</div>
-        ) : !complaints || complaints.length === 0 ? (
+        ) : complaints.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-neutral-500">No complaints found</p>
@@ -95,20 +96,58 @@ export default function ComplaintManagement() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{complaint.reason}</CardTitle>
-                      <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                        <p>From: {complaint.customer?.name || 'N/A'}</p>
-                        <p>Against: {complaint.againstUser?.name || 'N/A'}</p>
-                        <p>Date: {new Date(complaint.createdAt).toLocaleDateString()}</p>
-                      </div>
+                      <p className="text-xs font-mono text-neutral-400 mt-0.5">
+                        Complaint ID: {complaint.id}
+                      </p>
+                      <p className="text-xs font-mono text-neutral-400">
+                        Booking ID: {complaint.bookingId}
+                      </p>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                        {new Date(complaint.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
                     {getStatusBadge(complaint.status)}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium mb-1">Description:</p>
-                    <p className="text-sm text-neutral-700 dark:text-neutral-300">{complaint.description}</p>
+
+                  {/* Customer & Worker info from booking */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                        Raised By (Customer)
+                      </p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                        <span className="font-medium">{complaint.booking?.customerName || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm mt-1">
+                        <Phone className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                        <span>{complaint.booking?.customerPhone || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                        Against (Worker)
+                      </p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                        <span className="font-medium">{complaint.booking?.workerName || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm mt-1">
+                        <Phone className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
+                        <span>{complaint.booking?.workerPhone || 'N/A'}</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {complaint.description && (
+                    <div>
+                      <p className="text-sm font-medium mb-1">Description:</p>
+                      <p className="text-sm text-neutral-700 dark:text-neutral-300">{complaint.description}</p>
+                    </div>
+                  )}
 
                   {complaint.adminNotes && (
                     <div className="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
@@ -123,8 +162,10 @@ export default function ComplaintManagement() {
                         size="sm"
                         onClick={() => {
                           setSelectedComplaint(complaint);
+                          setAdminNotes('');
                           setShowResolveDialog(true);
                         }}
+                        disabled={resolveMutation.isPending}
                       >
                         Resolve
                       </Button>
@@ -133,8 +174,10 @@ export default function ComplaintManagement() {
                         variant="destructive"
                         onClick={() => {
                           setSelectedComplaint(complaint);
+                          setAdminNotes('');
                           setShowRejectDialog(true);
                         }}
+                        disabled={rejectMutation.isPending}
                       >
                         Reject
                       </Button>
@@ -146,7 +189,7 @@ export default function ComplaintManagement() {
           </div>
         )}
 
-        <Dialog open={showResolveDialog} onOpenChange={setShowResolveDialog}>
+        <Dialog open={showResolveDialog} onOpenChange={(open) => { setShowResolveDialog(open); if (!open) setAdminNotes(''); }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Resolve Complaint</DialogTitle>
@@ -166,15 +209,15 @@ export default function ComplaintManagement() {
                 <Button variant="outline" className="flex-1" onClick={() => setShowResolveDialog(false)}>
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleResolve}>
-                  Resolve Complaint
+                <Button className="flex-1" onClick={handleResolve} disabled={resolveMutation.isPending}>
+                  {resolveMutation.isPending ? 'Resolving...' : 'Resolve Complaint'}
                 </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
-        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <Dialog open={showRejectDialog} onOpenChange={(open) => { setShowRejectDialog(open); if (!open) setAdminNotes(''); }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Reject Complaint</DialogTitle>
@@ -194,8 +237,8 @@ export default function ComplaintManagement() {
                 <Button variant="outline" className="flex-1" onClick={() => setShowRejectDialog(false)}>
                   Cancel
                 </Button>
-                <Button variant="destructive" className="flex-1" onClick={handleReject}>
-                  Reject Complaint
+                <Button variant="destructive" className="flex-1" onClick={handleReject} disabled={rejectMutation.isPending}>
+                  {rejectMutation.isPending ? 'Rejecting...' : 'Reject Complaint'}
                 </Button>
               </div>
             </div>

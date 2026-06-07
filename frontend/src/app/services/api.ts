@@ -147,7 +147,7 @@ export const bookingService = {
 };
 
 export const reviewService = {
-  create: async (data: { bookingId: string; rating: number; comment: string }) => {
+  create: async (data: { bookingId: string; rating: number; comment?: string }) => {
     const response = await api.post('/reviews', data);
     return response.data;
   },
@@ -163,7 +163,7 @@ export const complaintService = {
     bookingId: string;
     againstUserId: string;
     reason: string;
-    description: string;
+    description?: string;
   }) => {
     const response = await api.post('/complaints', data);
     return response.data;
