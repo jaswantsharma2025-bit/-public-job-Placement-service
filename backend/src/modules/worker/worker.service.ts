@@ -6,34 +6,27 @@ export const createWorkerProfile = async (
 ) => {
   const existingProfile =
     await prisma.workerProfile.findUnique({
-      where: {
-        userId,
-      },
+      where: { userId },
     });
 
   if (existingProfile) {
-    throw new Error(
-      "Worker profile already exists"
-    );
+    throw new Error("Worker profile already exists");
   }
 
-  const profile =
-    await prisma.workerProfile.create({
-      data: {
-        userId,
-        aadhaarNumber: data.aadhaarNumber,
-        gender: data.gender,
-        skillCategory: data.skillCategory,
-        experience: data.experience,
-        expectedSalary: data.expectedSalary,
-        city: data.city,
-        state: data.state,
-        latitude: data.latitude,
-        longitude: data.longitude,
-      },
-    });
-
-  return profile;
+  return prisma.workerProfile.create({
+    data: {
+      userId,
+      aadhaarNumber: data.aadhaarNumber,
+      gender: data.gender,
+      skillCategory: data.skillCategory,
+      experience: data.experience,
+      expectedSalary: data.expectedSalary,
+      city: data.city,
+      state: data.state,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    },
+  });
 };
 
 export const getWorkerProfile = async (
@@ -41,9 +34,7 @@ export const getWorkerProfile = async (
 ) => {
   const profile =
     await prisma.workerProfile.findUnique({
-      where: {
-        userId,
-      },
+      where: { userId },
       include: {
         user: {
           select: {
@@ -57,9 +48,7 @@ export const getWorkerProfile = async (
     });
 
   if (!profile) {
-    throw new Error(
-      "Worker profile not found"
-    );
+    throw new Error("Worker profile not found");
   }
 
   return profile;
@@ -69,87 +58,85 @@ export const updateWorkerProfile = async (
   userId: string,
   data: any
 ) => {
-  const profile =
-    await prisma.workerProfile.findUnique({
-      where: {
-        userId,
-      },
-    });
+  const existing = await prisma.workerProfile.findUnique({
+    where: { userId },
+  });
 
-  if (!profile) {
-    throw new Error(
-      "Worker profile not found"
-    );
+  if (!existing) {
+    return prisma.workerProfile.create({
+      data: { userId, ...data },
+    });
   }
 
   return prisma.workerProfile.update({
-    where: {
-      userId,
-    },
+    where: { userId },
     data,
   });
 };
 
-export const updateAvailability =
-  async (
-    userId: string,
-    isAvailable: boolean
-  ) => {
-    return prisma.workerProfile.update({
-      where: {
-        userId,
-      },
+export const updateAvailability = async (
+  userId: string,
+  isAvailable: boolean
+) => {
+  const existing = await prisma.workerProfile.findUnique({
+    where: { userId },
+  });
 
-      data: {
-        isAvailable,
-      },
-    });
+  if (!existing) {
+    throw new Error(
+      "Worker profile not found. Please complete your profile before updating availability."
+    );
+  }
+
+  return prisma.workerProfile.update({
+    where: { userId },
+    data: { isAvailable },
+  });
+};
+
+export const updateLocation = async (
+  userId: string,
+  data: any
+) => {
+  const existing = await prisma.workerProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!existing) {
+    throw new Error(
+      "Worker profile not found. Please complete your profile before updating location."
+    );
+  }
+
+  return prisma.workerProfile.update({
+    where: { userId },
+    data: {
+      latitude: data.latitude,
+      longitude: data.longitude,
+      city: data.city,
+      state: data.state,
+    },
+  });
+};
+
+export const getWorkerEarnings = async (
+  userId: string
+) => {
+  const bookings = await prisma.booking.findMany({
+    where: {
+      workerId: userId,
+      status: "COMPLETED",
+    },
+  });
+
+  const totalEarnings = bookings.reduce(
+    (sum, booking) =>
+      sum + Number(booking.servicePrice || 0),
+    0
+  );
+
+  return {
+    totalBookings: bookings.length,
+    totalEarnings,
   };
-
-export const updateLocation =
-  async (
-    userId: string,
-    data: any
-  ) => {
-    return prisma.workerProfile.update({
-      where: {
-        userId,
-      },
-
-      data: {
-        latitude: data.latitude,
-        longitude: data.longitude,
-
-        city: data.city,
-        state: data.state,
-      },
-    });
-  };
-
-  export const getWorkerEarnings =
-  async (userId: string) => {
-    const bookings =
-      await prisma.booking.findMany({
-        where: {
-          workerId: userId,
-          status: "COMPLETED",
-        },
-      });
-
-    const totalEarnings =
-      bookings.reduce(
-        (sum, booking) =>
-          sum +
-          Number(
-            booking.servicePrice || 0
-          ),
-        0
-      );
-
-    return {
-      totalBookings:
-        bookings.length,
-
-      totalEarnings,
-    };
-  };
+};

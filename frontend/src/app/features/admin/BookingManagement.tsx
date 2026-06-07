@@ -21,8 +21,8 @@ export default function BookingManagement() {
       queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       toast.success('Booking marked as completed');
     },
-    onError: () => {
-      toast.error('Failed to complete booking');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to complete booking');
     },
   });
 
@@ -32,8 +32,8 @@ export default function BookingManagement() {
       queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       toast.success('Booking cancelled');
     },
-    onError: () => {
-      toast.error('Failed to cancel booking');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to cancel booking');
     },
   });
 
@@ -74,9 +74,12 @@ export default function BookingManagement() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{booking.serviceCategory}</CardTitle>
+                      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 font-mono">
+                        Booking ID: {booking.id}
+                      </p>
                       <div className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                        <p>Customer: {booking.customer?.name || 'N/A'}</p>
-                        <p>Worker: {booking.worker?.user?.name || booking.worker?.name || 'N/A'}</p>
+                        <p>Customer: {booking.customerName || 'N/A'}</p>
+                        <p>Worker: {booking.workerName || 'N/A'}</p>
                       </div>
                     </div>
                     {getStatusBadge(booking.status)}
@@ -111,6 +114,7 @@ export default function BookingManagement() {
                           size="sm"
                           variant="outline"
                           onClick={() => forceCompleteMutation.mutate(booking.id)}
+                          disabled={forceCompleteMutation.isPending}
                         >
                           Force Complete
                         </Button>
@@ -118,6 +122,7 @@ export default function BookingManagement() {
                           size="sm"
                           variant="destructive"
                           onClick={() => forceCancelMutation.mutate(booking.id)}
+                          disabled={forceCancelMutation.isPending}
                         >
                           Force Cancel
                         </Button>

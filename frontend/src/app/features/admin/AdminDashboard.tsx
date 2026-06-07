@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import AdminLayout from '../../layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { adminService } from '../../services/api';
 import { Users, CheckCircle, Calendar, DollarSign, TrendingUp, UserCheck } from 'lucide-react';
 
 const quickActions = [
@@ -13,6 +15,11 @@ const quickActions = [
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+
+  const { data: analytics } = useQuery({
+    queryKey: ['admin-analytics'],
+    queryFn: adminService.getAnalytics,
+  });
 
   return (
     <AdminLayout>
@@ -31,7 +38,7 @@ export default function AdminDashboard() {
               <Users className="w-5 h-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">-</p>
+              <p className="text-3xl font-bold">{analytics?.totalCustomers ?? '-'}</p>
             </CardContent>
           </Card>
 
@@ -43,7 +50,7 @@ export default function AdminDashboard() {
               <Users className="w-5 h-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">-</p>
+              <p className="text-3xl font-bold">{analytics?.totalWorkers ?? '-'}</p>
             </CardContent>
           </Card>
 
@@ -55,7 +62,7 @@ export default function AdminDashboard() {
               <Calendar className="w-5 h-5 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">-</p>
+              <p className="text-3xl font-bold">{analytics?.totalBookings ?? '-'}</p>
             </CardContent>
           </Card>
 
@@ -67,7 +74,9 @@ export default function AdminDashboard() {
               <DollarSign className="w-5 h-5 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">₹-</p>
+              <p className="text-3xl font-bold">
+                {analytics ? `₹${analytics.totalRevenue}` : '₹-'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -110,11 +119,19 @@ export default function AdminDashboard() {
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm">Worker Verification Rate</span>
-                <span className="font-semibold">-</span>
+                <span className="font-semibold">
+                  {analytics?.totalWorkers
+                    ? `${Math.round((analytics.verifiedWorkers / analytics.totalWorkers) * 100)}%`
+                    : '-'}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Booking Success Rate</span>
-                <span className="font-semibold">-</span>
+                <span className="font-semibold">
+                  {analytics?.totalBookings
+                    ? `${Math.round((analytics.completedBookings / analytics.totalBookings) * 100)}%`
+                    : '-'}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Customer Satisfaction</span>

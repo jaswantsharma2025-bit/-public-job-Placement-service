@@ -4,13 +4,12 @@ import { toast } from 'sonner';
 import AdminLayout from '../../layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Badge } from '../../components/ui/badge';
 import { adminService } from '../../services/api';
-import { CheckCircle, XCircle, User, Phone, MapPin } from 'lucide-react';
+import { CheckCircle, XCircle, Phone, MapPin } from 'lucide-react';
 
 export default function PendingWorkers() {
   const queryClient = useQueryClient();
@@ -24,7 +23,8 @@ export default function PendingWorkers() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (id: string) => adminService.approveWorker(id),
+    // Backend route: PATCH /admin/workers/:userId/approve — must pass userId not profile id
+    mutationFn: (userId: string) => adminService.approveWorker(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-workers'] });
       toast.success('Worker approved successfully');
@@ -35,8 +35,8 @@ export default function PendingWorkers() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      adminService.rejectWorker(id, reason),
+    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+      adminService.rejectWorker(userId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-workers'] });
       setShowRejectDialog(false);
@@ -54,7 +54,7 @@ export default function PendingWorkers() {
       toast.error('Please provide a reason for rejection');
       return;
     }
-    rejectMutation.mutate({ id: selectedWorker.id, reason: rejectReason });
+    rejectMutation.mutate({ userId: selectedWorker.userId, reason: rejectReason });
   };
 
   return (
@@ -112,7 +112,7 @@ export default function PendingWorkers() {
                     <Button
                       size="sm"
                       className="flex-1"
-                      onClick={() => approveMutation.mutate(worker.id)}
+                      onClick={() => approveMutation.mutate(worker.userId)}
                     >
                       <CheckCircle className="w-4 h-4 mr-1" />
                       Approve

@@ -17,7 +17,7 @@ interface BookingForm {
   serviceCategory: SkillCategory;
   address: string;
   city: string;
-  scheduledDate?: string;
+  scheduledDate: string;
   durationMinutes: number;
   servicePrice: number;
   notes?: string;
@@ -34,6 +34,7 @@ export default function CreateBookingPage() {
     defaultValues: {
       serviceCategory: worker?.skillCategory || 'MAID',
       bookingType: 'INSTANT',
+      scheduledDate: new Date().toISOString().slice(0, 16),
     }
   });
 
@@ -46,9 +47,15 @@ export default function CreateBookingPage() {
     try {
       setLoading(true);
       await bookingService.create({
-        workerId: worker.id,
-        ...data,
+        workerId: worker.userId || worker.id,
         bookingType,
+        serviceCategory: worker.skillCategory,
+        address: data.address,
+        city: data.city,
+        scheduledDate: data.scheduledDate,
+        durationMinutes: Number(data.durationMinutes),
+        servicePrice: Number(data.servicePrice),
+        notes: data.notes,
       });
       toast.success('Booking created successfully!');
       navigate('/customer/bookings');
@@ -107,9 +114,8 @@ export default function CreateBookingPage() {
                 <Label htmlFor="serviceCategory">Service Category</Label>
                 <Input
                   id="serviceCategory"
-                  value={worker?.skillCategory}
+                  value={worker?.skillCategory || ''}
                   disabled
-                  {...register('serviceCategory')}
                 />
               </div>
 
@@ -117,8 +123,8 @@ export default function CreateBookingPage() {
                 <Label htmlFor="address">Address</Label>
                 <Textarea
                   id="address"
-                  placeholder="Enter service address"
-                  {...register('address', { required: 'Address is required' })}
+                  placeholder="Enter service address (min 5 characters)"
+                  {...register('address', { required: 'Address is required', minLength: { value: 5, message: 'Address must be at least 5 characters' } })}
                 />
                 {errors.address && <p className="text-sm text-red-500">{errors.address.message}</p>}
               </div>
@@ -127,31 +133,34 @@ export default function CreateBookingPage() {
                 <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
-                  placeholder="Enter city"
-                  {...register('city', { required: 'City is required' })}
+                  placeholder="Enter city (min 2 characters)"
+                  {...register('city', { required: 'City is required', minLength: { value: 2, message: 'City must be at least 2 characters' } })}
                 />
                 {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
               </div>
 
-              {bookingType === 'SCHEDULED' && (
-                <div className="space-y-2">
-                  <Label htmlFor="scheduledDate">Scheduled Date & Time</Label>
-                  <Input
-                    id="scheduledDate"
-                    type="datetime-local"
-                    {...register('scheduledDate', { required: bookingType === 'SCHEDULED' })}
-                  />
-                  {errors.scheduledDate && <p className="text-sm text-red-500">Scheduled date is required</p>}
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="scheduledDate">
+                  {bookingType === 'SCHEDULED' ? 'Scheduled Date & Time' : 'Date & Time'}
+                </Label>
+                <Input
+                  id="scheduledDate"
+                  type="datetime-local"
+                  {...register('scheduledDate', { required: 'Date and time is required' })}
+                />
+                {errors.scheduledDate && <p className="text-sm text-red-500">{errors.scheduledDate.message}</p>}
+              </div>
 
               <div className="space-y-2">
-                <Label htmlFor="durationMinutes">Duration (minutes)</Label>
+                <Label htmlFor="durationMinutes">Duration (minutes, minimum 60)</Label>
                 <Input
                   id="durationMinutes"
                   type="number"
                   placeholder="e.g., 120"
-                  {...register('durationMinutes', { required: 'Duration is required', min: 1 })}
+                  {...register('durationMinutes', {
+                    required: 'Duration is required',
+                    min: { value: 60, message: 'Minimum duration is 60 minutes' },
+                  })}
                 />
                 {errors.durationMinutes && <p className="text-sm text-red-500">{errors.durationMinutes.message}</p>}
               </div>
@@ -162,7 +171,10 @@ export default function CreateBookingPage() {
                   id="servicePrice"
                   type="number"
                   placeholder="e.g., 500"
-                  {...register('servicePrice', { required: 'Price is required', min: 1 })}
+                  {...register('servicePrice', {
+                    required: 'Price is required',
+                    min: { value: 1, message: 'Price must be positive' },
+                  })}
                 />
                 {errors.servicePrice && <p className="text-sm text-red-500">{errors.servicePrice.message}</p>}
               </div>

@@ -19,7 +19,8 @@ export default function WorkerManagement() {
   });
 
   const suspendMutation = useMutation({
-    mutationFn: (id: string) => adminService.suspendWorker(id),
+    // Backend route: PATCH /admin/workers/:userId/suspend — must pass userId not profile id
+    mutationFn: (userId: string) => adminService.suspendWorker(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-workers'] });
       toast.success('Worker suspended');
@@ -30,7 +31,7 @@ export default function WorkerManagement() {
   });
 
   const reactivateMutation = useMutation({
-    mutationFn: (id: string) => adminService.reactivateWorker(id),
+    mutationFn: (userId: string) => adminService.reactivateWorker(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-workers'] });
       toast.success('Worker reactivated');
@@ -102,7 +103,7 @@ export default function WorkerManagement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => suspendMutation.mutate(worker.id)}
+                        onClick={() => suspendMutation.mutate(worker.userId)}
                       >
                         <UserX className="w-4 h-4 mr-1" />
                         Suspend
@@ -110,7 +111,7 @@ export default function WorkerManagement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => reactivateMutation.mutate(worker.id)}
+                        onClick={() => reactivateMutation.mutate(worker.userId)}
                       >
                         <UserCheck className="w-4 h-4 mr-1" />
                         Reactivate

@@ -10,7 +10,7 @@ import { Calendar, MapPin, DollarSign } from 'lucide-react';
 export default function WorkerBookings() {
   const queryClient = useQueryClient();
 
-  const { data: bookings, isLoading } = useQuery({
+  const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['worker-bookings'],
     queryFn: bookingService.getWorkerBookings,
   });
@@ -21,8 +21,8 @@ export default function WorkerBookings() {
       queryClient.invalidateQueries({ queryKey: ['worker-bookings'] });
       toast.success('Booking accepted!');
     },
-    onError: () => {
-      toast.error('Failed to accept booking');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to accept booking');
     },
   });
 
@@ -32,8 +32,8 @@ export default function WorkerBookings() {
       queryClient.invalidateQueries({ queryKey: ['worker-bookings'] });
       toast.success('Booking rejected');
     },
-    onError: () => {
-      toast.error('Failed to reject booking');
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to reject booking');
     },
   });
 
@@ -45,6 +45,7 @@ export default function WorkerBookings() {
       COMPLETED: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300',
       CANCELLED: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
       REJECTED: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
+      NO_SHOW: 'bg-neutral-100 dark:bg-neutral-900/20 text-neutral-700 dark:text-neutral-300',
     };
     return <Badge className={colors[status] || ''}>{status}</Badge>;
   };
@@ -73,8 +74,11 @@ export default function WorkerBookings() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{booking.serviceCategory}</CardTitle>
+                      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 font-mono">
+                        Booking ID: {booking.id}
+                      </p>
                       <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                        Customer: {booking.customer?.name || 'N/A'}
+                        Customer: {booking.customerName || 'N/A'}
                       </p>
                     </div>
                     {getStatusBadge(booking.status)}
@@ -113,6 +117,7 @@ export default function WorkerBookings() {
                       <Button
                         size="sm"
                         onClick={() => acceptBookingMutation.mutate(booking.id)}
+                        disabled={acceptBookingMutation.isPending}
                       >
                         Accept
                       </Button>
@@ -120,6 +125,7 @@ export default function WorkerBookings() {
                         size="sm"
                         variant="destructive"
                         onClick={() => rejectBookingMutation.mutate(booking.id)}
+                        disabled={rejectBookingMutation.isPending}
                       >
                         Reject
                       </Button>
@@ -141,6 +147,12 @@ export default function WorkerBookings() {
                   {booking.status === 'COMPLETED' && (
                     <p className="text-sm text-green-600 dark:text-green-400">
                       Service completed successfully
+                    </p>
+                  )}
+
+                  {booking.status === 'NO_SHOW' && (
+                    <p className="text-sm text-neutral-500">
+                      Marked as no-show by customer
                     </p>
                   )}
                 </CardContent>

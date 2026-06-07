@@ -12,22 +12,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-  const storedToken = localStorage.getItem('token');
-  const storedUser = localStorage.getItem('user');
-
-  if (storedToken && storedUser) {
-    setToken(storedToken);
-    setUser(JSON.parse(storedUser));
+// Read synchronously ONCE at module load — before first render.
+// This eliminates the flicker where user is null for one tick on refresh.
+function getInitialAuth(): { user: User | null; token: string | null } {
+  try {
+    const token = localStorage.getItem('token');
+    const raw = localStorage.getItem('user');
+    if (token && raw) {
+      return { token, user: JSON.parse(raw) };
+    }
+  } catch {
+    // corrupted storage — clear it
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }
+  return { token: null, user: null };
+}
 
-  setLoading(false);
-}, []);
+const initial = getInitialAuth();
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(initial.user);
+  const [token, setToken] = useState<string | null>(initial.token);
+  // loading is false immediately because we read synchronously above
+  const [loading, setLoading] = useState(false);
+
+  // Keep localStorage in sync whenever token/user changes
+  useEffect(() => {
+    if (token && user) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+  }, [token, user]);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
@@ -45,15 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-  value={{
-    user,
-    token,
-    login,
-    logout,
-    isAuthenticated: !!token && !!user,
-    loading,
-  }}
->
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        isAuthenticated: !!token && !!user,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

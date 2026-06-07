@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import WorkerLayout from '../../layouts/WorkerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -27,7 +28,29 @@ interface WorkerProfileForm {
 export default function WorkerProfile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit } = useForm<WorkerProfileForm>();
+  const { register, handleSubmit, control, reset } = useForm<WorkerProfileForm>();
+
+  const { data: existingProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ['worker-profile'],
+    queryFn: profileService.getWorkerProfile,
+    retry: false,
+    throwOnError: false,
+  });
+
+  // Populate form when profile data arrives (including after page refresh)
+  useEffect(() => {
+    if (existingProfile) {
+      reset({
+        aadhaarNumber: existingProfile.aadhaarNumber ?? '',
+        gender: existingProfile.gender ?? undefined,
+        skillCategory: existingProfile.skillCategory ?? undefined,
+        experience: existingProfile.experience ?? undefined,
+        expectedSalary: existingProfile.expectedSalary ?? undefined,
+        city: existingProfile.city ?? '',
+        state: existingProfile.state ?? '',
+      });
+    }
+  }, [existingProfile, reset]);
 
   const onSubmit = async (data: WorkerProfileForm) => {
     try {
@@ -74,94 +97,128 @@ export default function WorkerProfile() {
           </CardContent>
         </Card>
 
+        {!existingProfile && !profileLoading && (
+          <Card className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
+            <CardContent className="p-6">
+              <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                ⚠ Profile not set up yet
+              </p>
+              <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                Complete and save your profile below before you can update your location or availability.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Professional Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="aadhaarNumber">Aadhaar Number</Label>
-                <Input
-                  id="aadhaarNumber"
-                  placeholder="Enter your Aadhaar number"
-                  maxLength={12}
-                  {...register('aadhaarNumber')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <Input
-                  id="gender"
-                  placeholder="Male/Female/Other"
-                  {...register('gender')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="skillCategory">Skill Category</Label>
-                <Select {...register('skillCategory')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your skill" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MAID">Maid</SelectItem>
-                    <SelectItem value="COOK">Cook</SelectItem>
-                    <SelectItem value="DRIVER">Driver</SelectItem>
-                    <SelectItem value="NURSE">Nurse</SelectItem>
-                    <SelectItem value="PLUMBER">Plumber</SelectItem>
-                    <SelectItem value="ELECTRICIAN">Electrician</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            {profileLoading ? (
+              <div className="text-center py-8">Loading profile...</div>
+            ) : (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="experience">Experience (years)</Label>
+                  <Label htmlFor="aadhaarNumber">Aadhaar Number <span className="text-red-500">*</span></Label>
                   <Input
-                    id="experience"
-                    type="number"
-                    placeholder="e.g., 5"
-                    {...register('experience', { valueAsNumber: true })}
+                    id="aadhaarNumber"
+                    placeholder="Enter your 12-digit Aadhaar number"
+                    maxLength={12}
+                    {...register('aadhaarNumber')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="expectedSalary">Expected Salary (₹/month)</Label>
-                  <Input
-                    id="expectedSalary"
-                    type="number"
-                    placeholder="e.g., 15000"
-                    {...register('expectedSalary', { valueAsNumber: true })}
+                  <Label htmlFor="gender">Gender</Label>
+                  <Controller
+                    name="gender"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <SelectTrigger id="gender">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">Male</SelectItem>
+                          <SelectItem value="FEMALE">Female</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Enter city"
-                    {...register('city')}
+                  <Label htmlFor="skillCategory">Skill Category <span className="text-red-500">*</span></Label>
+                  <Controller
+                    name="skillCategory"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <SelectTrigger id="skillCategory">
+                          <SelectValue placeholder="Select your skill" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MAID">Maid</SelectItem>
+                          <SelectItem value="COOK">Cook</SelectItem>
+                          <SelectItem value="DRIVER">Driver</SelectItem>
+                          <SelectItem value="NURSE">Nurse</SelectItem>
+                          <SelectItem value="PLUMBER">Plumber</SelectItem>
+                          <SelectItem value="ELECTRICIAN">Electrician</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    placeholder="Enter state"
-                    {...register('state')}
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="experience">Experience (years) <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="experience"
+                      type="number"
+                      placeholder="e.g., 5"
+                      {...register('experience', { valueAsNumber: true })}
+                    />
+                  </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </form>
+                  <div className="space-y-2">
+                    <Label htmlFor="expectedSalary">Expected Salary (₹/month) <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="expectedSalary"
+                      type="number"
+                      placeholder="e.g., 15000"
+                      {...register('expectedSalary', { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      placeholder="Enter city"
+                      {...register('city')}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      placeholder="Enter state"
+                      {...register('state')}
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
 
