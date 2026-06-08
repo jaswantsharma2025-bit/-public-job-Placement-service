@@ -89,31 +89,39 @@ workerPhone: worker.user.phone,
   });
 };
 
-export const getCustomerBookings =
-  async (customerId: string) => {
-    return prisma.booking.findMany({
-      where: {
-        customerId,
+export const getCustomerBookings = async (customerId: string) => {
+  return prisma.booking.findMany({
+    where: { customerId },
+    include: {
+      review: {
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          createdAt: true,
+        },
       },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
 
-      orderBy: {
-        createdAt: "desc",
+export const getWorkerBookings = async (workerId: string) => {
+  return prisma.booking.findMany({
+    where: { workerId },
+    include: {
+      review: {
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          createdAt: true,
+        },
       },
-    });
-  };
-
-export const getWorkerBookings =
-  async (workerId: string) => {
-    return prisma.booking.findMany({
-      where: {
-        workerId,
-      },
-
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  };
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
 
 export const getBookingById =
   async (bookingId: string) => {

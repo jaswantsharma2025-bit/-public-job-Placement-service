@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { complaintService, bookingService } from '../../services/api';
 
 interface ComplaintForm {
@@ -21,21 +22,19 @@ interface ComplaintForm {
 export default function ComplaintsPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ComplaintForm>();
+  const [selectedBookingId, setSelectedBookingId] = useState<string>('');
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ComplaintForm>();
 
-  const { data: bookings } = useQuery({
+  // Reuse already-cached bookings — no extra fetch
+  const { data: bookings = [] } = useQuery({
     queryKey: ['customer-bookings'],
     queryFn: bookingService.getMyBookings,
   });
 
-  const { data: complaintsData, isLoading } = useQuery({
-  queryKey: ['my-complaints'],
-  queryFn: complaintService.getMy,
-});
-
-const complaints = Array.isArray(complaintsData)
-  ? complaintsData
-  : complaintsData?.data || [];
+  const { data: complaints = [], isLoading } = useQuery({
+    queryKey: ['my-complaints'],
+    queryFn: complaintService.getMy,
+  });
 
   const createComplaintMutation = useMutation({
     mutationFn: (data: ComplaintForm) => complaintService.create(data),
@@ -43,22 +42,27 @@ const complaints = Array.isArray(complaintsData)
       queryClient.invalidateQueries({ queryKey: ['my-complaints'] });
       toast.success('Complaint submitted successfully');
       setShowForm(false);
+      setSelectedBookingId('');
       reset();
     },
     onError: (error: any) => {
-  console.log(
-    "COMPLAINT ERROR",
-    error.response?.data
-  );
-
-  toast.error(
-    error.response?.data?.message
-  );
-},
+      toast.error(error.response?.data?.message || 'Failed to submit complaint');
+    },
   });
 
+  // When customer picks a booking, auto-fill bookingId and againstUserId (workerId)
+  const handleBookingSelect = (bookingId: string) => {
+    setSelectedBookingId(bookingId);
+    setValue('bookingId', bookingId);
+    const booking = bookings.find((b: any) => b.id === bookingId);
+    if (booking) {
+      setValue('againstUserId', booking.workerId);
+    }
+  };
+
   const onSubmit = (data: ComplaintForm) => {
-    createComplaintMutation.mutate(data);
+    // Ensure description is always a string (API expects string, not undefined)
+    createComplaintMutation.mutate({ ...data, description: data.description ?? '' });
   };
 
   const getStatusBadge = (status: string) => {
@@ -78,7 +82,7 @@ const complaints = Array.isArray(complaintsData)
             <h1 className="text-3xl font-bold">Complaints</h1>
             <p className="text-neutral-600 dark:text-neutral-400 mt-1">Submit and track your complaints</p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={() => { setShowForm(!showForm); reset(); setSelectedBookingId(''); }}>
             {showForm ? 'Cancel' : 'File Complaint'}
           </Button>
         </div>
@@ -90,49 +94,72 @@ const complaints = Array.isArray(complaintsData)
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+                {/* Booking selector — auto-fills IDs */}
+                <div className="space-y-2">
+                  <Label>Select Booking</Label>
+                  {bookings.length > 0 ? (
+                    <Select value={selectedBookingId} onValueChange={handleBookingSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a booking to complain about" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bookings.map((booking: any) => (
+                          <SelectItem key={booking.id} value={booking.id}>
+                            <span className="font-mono text-xs">{booking.id.slice(0, 8)}…</span>
+                            {' — '}{booking.serviceCategory} · {booking.workerName || 'Worker'} · {booking.status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-neutral-500">No bookings found. You need a booking to file a complaint.</p>
+                  )}
+                </div>
+
+                {/* Hidden fields populated by selector, but still editable as fallback */}
                 <div className="space-y-2">
                   <Label htmlFor="bookingId">Booking ID</Label>
                   <Input
                     id="bookingId"
-                    placeholder="Enter booking ID"
+                    placeholder="Auto-filled from selection above"
                     {...register('bookingId', { required: 'Booking ID is required' })}
                   />
-                  {errors.bookingId && <p className="text-sm text-red-500">{errors.bookingId.message}</p>}
+                  {errors.bookingId && <p className="text-xs text-red-500">{errors.bookingId.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="againstUserId">Against User ID</Label>
+                  <Label htmlFor="againstUserId">Against Worker ID</Label>
                   <Input
                     id="againstUserId"
-                    placeholder="Enter worker/user ID"
-                    {...register('againstUserId', { required: 'User ID is required' })}
+                    placeholder="Auto-filled from selection above"
+                    {...register('againstUserId', { required: 'Worker ID is required' })}
                   />
-                  {errors.againstUserId && <p className="text-sm text-red-500">{errors.againstUserId.message}</p>}
+                  {errors.againstUserId && <p className="text-xs text-red-500">{errors.againstUserId.message}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="reason">Reason</Label>
                   <Input
                     id="reason"
-                    placeholder="Brief reason for complaint"
-                    {...register('reason', { required: 'Reason is required' })}
+                    placeholder="Brief reason for complaint (min 3 characters)"
+                    {...register('reason', { required: 'Reason is required', minLength: { value: 3, message: 'Reason must be at least 3 characters' } })}
                   />
-                  {errors.reason && <p className="text-sm text-red-500">{errors.reason.message}</p>}
+                  {errors.reason && <p className="text-xs text-red-500">{errors.reason.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Description <span className="text-neutral-400 font-normal">(Optional)</span></Label>
                   <Textarea
                     id="description"
                     placeholder="Detailed description of your complaint"
                     rows={5}
-                    {...register('description', { required: 'Description is required' })}
+                    {...register('description')}
                   />
-                  {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Submit Complaint
+                <Button type="submit" className="w-full" disabled={createComplaintMutation.isPending}>
+                  {createComplaintMutation.isPending ? 'Submitting...' : 'Submit Complaint'}
                 </Button>
               </form>
             </CardContent>
@@ -143,7 +170,7 @@ const complaints = Array.isArray(complaintsData)
           <h2 className="text-xl font-semibold">My Complaints</h2>
           {isLoading ? (
             <div className="text-center py-12">Loading complaints...</div>
-          ) : !complaints || complaints.length === 0 ? (
+          ) : complaints.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <p className="text-neutral-500">No complaints filed yet</p>
@@ -156,6 +183,7 @@ const complaints = Array.isArray(complaintsData)
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{complaint.reason}</CardTitle>
+                      <p className="text-xs font-mono text-neutral-400 mt-0.5">ID: {complaint.id}</p>
                       <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
                         {new Date(complaint.createdAt).toLocaleDateString()}
                       </p>
@@ -164,7 +192,10 @@ const complaints = Array.isArray(complaintsData)
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-neutral-700 dark:text-neutral-300">{complaint.description}</p>
+                  {complaint.description && (
+                    <p className="text-neutral-700 dark:text-neutral-300">{complaint.description}</p>
+                  )}
+                  <p className="text-xs text-neutral-400 font-mono">Booking: {complaint.bookingId}</p>
                   {complaint.adminNotes && (
                     <div className="mt-4 p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
                       <p className="text-sm font-medium">Admin Response:</p>

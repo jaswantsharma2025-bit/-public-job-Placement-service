@@ -5,7 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { bookingService } from '../../services/api';
-import { Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Star } from 'lucide-react';
+
+const StarDisplay = ({ rating }: { rating: number }) => (
+  <div className="flex gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => (
+      <Star
+        key={s}
+        className={`w-3.5 h-3.5 ${
+          s <= rating
+            ? 'fill-black dark:fill-white text-black dark:text-white'
+            : 'text-neutral-300 dark:text-neutral-600'
+        }`}
+      />
+    ))}
+  </div>
+);
 
 export default function WorkerBookings() {
   const queryClient = useQueryClient();
@@ -50,6 +65,14 @@ export default function WorkerBookings() {
     return <Badge className={colors[status] || ''}>{status}</Badge>;
   };
 
+  // Compute aggregate stats from bookings
+  const completedBookings = bookings.filter((b: any) => b.status === 'COMPLETED');
+  const reviewedBookings = completedBookings.filter((b: any) => b.review);
+  const averageRating =
+    reviewedBookings.length > 0
+      ? reviewedBookings.reduce((sum: number, b: any) => sum + b.review.rating, 0) / reviewedBookings.length
+      : 0;
+
   return (
     <WorkerLayout>
       <div className="space-y-6">
@@ -58,9 +81,23 @@ export default function WorkerBookings() {
           <p className="text-neutral-600 dark:text-neutral-400 mt-1">Manage your service bookings</p>
         </div>
 
+        {/* Review summary bar */}
+        {reviewedBookings.length > 0 && (
+          <div className="flex items-center gap-4 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
+            <div className="flex flex-col">
+              <span className="text-xs text-neutral-500 uppercase tracking-wider">Your Average Rating</span>
+              <div className="flex items-center gap-2 mt-1">
+                <StarDisplay rating={Math.round(averageRating)} />
+                <span className="font-bold text-lg">{averageRating.toFixed(1)}</span>
+                <span className="text-sm text-neutral-500">from {reviewedBookings.length} review{reviewedBookings.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="text-center py-12">Loading bookings...</div>
-        ) : !bookings || bookings.length === 0 ? (
+        ) : bookings.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-neutral-500">No bookings yet. Make sure you're available to receive bookings!</p>
@@ -114,46 +151,43 @@ export default function WorkerBookings() {
 
                   {booking.status === 'PENDING' && (
                     <div className="flex gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        onClick={() => acceptBookingMutation.mutate(booking.id)}
-                        disabled={acceptBookingMutation.isPending}
-                      >
+                      <Button size="sm" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>
                         Accept
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => rejectBookingMutation.mutate(booking.id)}
-                        disabled={rejectBookingMutation.isPending}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => rejectBookingMutation.mutate(booking.id)} disabled={rejectBookingMutation.isPending}>
                         Reject
                       </Button>
                     </div>
                   )}
 
                   {booking.status === 'ACCEPTED' && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400">
-                      Waiting for customer to start service
-                    </p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">Waiting for customer to start service</p>
                   )}
 
                   {booking.status === 'IN_PROGRESS' && (
-                    <p className="text-sm text-purple-600 dark:text-purple-400">
-                      Service in progress
-                    </p>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">Service in progress</p>
                   )}
 
                   {booking.status === 'COMPLETED' && (
-                    <p className="text-sm text-green-600 dark:text-green-400">
-                      Service completed successfully
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-green-600 dark:text-green-400">Service completed successfully</p>
+                      {/* Show review received for this booking */}
+                      {booking.review ? (
+                        <div className="p-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg space-y-1">
+                          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Customer Review</p>
+                          <StarDisplay rating={booking.review.rating} />
+                          {booking.review.comment && (
+                            <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">"{booking.review.comment}"</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neutral-400">No review yet from customer</p>
+                      )}
+                    </div>
                   )}
 
                   {booking.status === 'NO_SHOW' && (
-                    <p className="text-sm text-neutral-500">
-                      Marked as no-show by customer
-                    </p>
+                    <p className="text-sm text-neutral-500">Marked as no-show by customer</p>
                   )}
                 </CardContent>
               </Card>
