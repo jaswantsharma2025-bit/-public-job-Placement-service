@@ -211,8 +211,9 @@ export const adminService = {
     return response.data;
   },
 
-  suspendWorker: async (userId: string) => {
-    const response = await api.patch(`/admin/workers/${userId}/suspend`);
+  // Fixed: backend requires reason in body
+  suspendWorker: async (userId: string, reason: string) => {
+    const response = await api.patch(`/admin/workers/${userId}/suspend`, { reason });
     return response.data;
   },
 

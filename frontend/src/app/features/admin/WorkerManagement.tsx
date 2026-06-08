@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { workerService, adminService } from '../../services/api';
 import { useState } from 'react';
 import { Search, UserX, UserCheck, Star } from 'lucide-react';
@@ -28,18 +31,27 @@ export default function WorkerManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Suspend dialog state
+  const [suspendTarget, setSuspendTarget] = useState<any>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+
   const { data: workers, isLoading } = useQuery({
     queryKey: ['all-workers'],
     queryFn: () => workerService.getAll({}),
   });
 
   const suspendMutation = useMutation({
-    mutationFn: (userId: string) => adminService.suspendWorker(userId),
+    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+      adminService.suspendWorker(userId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-workers'] });
       toast.success('Worker suspended');
+      setSuspendTarget(null);
+      setSuspendReason('');
     },
-    onError: () => toast.error('Failed to suspend worker'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to suspend worker');
+    },
   });
 
   const reactivateMutation = useMutation({
@@ -48,8 +60,19 @@ export default function WorkerManagement() {
       queryClient.invalidateQueries({ queryKey: ['all-workers'] });
       toast.success('Worker reactivated');
     },
-    onError: () => toast.error('Failed to reactivate worker'),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to reactivate worker');
+    },
   });
+
+  const handleSuspendConfirm = () => {
+    if (!suspendTarget) return;
+    if (!suspendReason.trim()) {
+      toast.error('Please enter a suspension reason');
+      return;
+    }
+    suspendMutation.mutate({ userId: suspendTarget.userId, reason: suspendReason.trim() });
+  };
 
   const filteredWorkers = workers?.filter((worker: any) =>
     worker.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,8 +142,10 @@ export default function WorkerManagement() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => suspendMutation.mutate(worker.userId)}
-                          disabled={suspendMutation.isPending}
+                          onClick={() => {
+                            setSuspendTarget(worker);
+                            setSuspendReason('');
+                          }}
                         >
                           <UserX className="w-4 h-4 mr-1" />
                           Suspend
@@ -171,12 +196,63 @@ export default function WorkerManagement() {
                       )}
                     </div>
                   </div>
+
+                  {/* Show suspension reason if suspended */}
+                  {worker.isSuspended && worker.suspensionReason && (
+                    <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded text-sm text-red-600 dark:text-red-400">
+                      <strong>Suspension reason:</strong> {worker.suspensionReason}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Suspend Confirmation Dialog */}
+      <Dialog
+        open={!!suspendTarget}
+        onOpenChange={(open) => { if (!open) { setSuspendTarget(null); setSuspendReason(''); } }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suspend Worker</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              You are about to suspend <strong>{suspendTarget?.user?.name}</strong>. They will not be able to receive new bookings.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="suspendReason">Suspension Reason <span className="text-red-500">*</span></Label>
+              <Textarea
+                id="suspendReason"
+                placeholder="Enter reason for suspension..."
+                rows={3}
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setSuspendTarget(null); setSuspendReason(''); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleSuspendConfirm}
+                disabled={suspendMutation.isPending}
+              >
+                {suspendMutation.isPending ? 'Suspending...' : 'Confirm Suspend'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
