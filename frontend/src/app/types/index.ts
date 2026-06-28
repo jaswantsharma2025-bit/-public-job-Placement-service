@@ -2,7 +2,14 @@ export type Role = 'CUSTOMER' | 'WORKER' | 'ADMIN' | 'EMPLOYER';
 
 export type SkillCategory = 'MAID' | 'COOK' | 'DRIVER' | 'NURSE' | 'PLUMBER' | 'ELECTRICIAN';
 
-export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type BookingStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'NO_SHOW';
 
 export type BookingType = 'INSTANT' | 'SCHEDULED';
 
@@ -11,6 +18,19 @@ export type PaymentStatus = 'PENDING' | 'PAID';
 export type ComplaintStatus = 'OPEN' | 'RESOLVED' | 'REJECTED';
 
 export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
+
+export type EducationLevel =
+  | 'NO_FORMAL_EDUCATION'
+  | 'PRIMARY'
+  | 'SECONDARY'
+  | 'HIGHER_SECONDARY'
+  | 'DIPLOMA'
+  | 'GRADUATE'
+  | 'POST_GRADUATE';
 
 export interface User {
   id: string;
@@ -27,16 +47,60 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Worker extends User {
-  aadhaarNumber?: string;
+export interface WorkerProfile {
+  id: string;
+  userId: string;
+  user?: Pick<User, 'id' | 'name' | 'phone' | 'role'>;
+
+  // Documents
+  aadhaarNumber: string;
+  profilePhotoUrl?: string;
+
+  // Personal
+  gender?: Gender;
+  dateOfBirth?: string;
+  height?: number;
+  weight?: number;
+  languagesKnown?: string[];
+  education?: EducationLevel;
+  maritalStatus?: MaritalStatus;
+
+  // Professional
   skillCategory: SkillCategory;
   experience: number;
   expectedSalary: number;
-  rating: number;
-  isAvailable: boolean;
+  aboutYourself?: string;
+  previousCompanies?: string;
+  certifications?: string;
+  availableTimings?: string;
+  preferredWorkingRadius?: number;
+  canRelocate?: boolean;
+
+  // Family & Emergency
+  fatherName?: string;
+  motherName?: string;
+  emergencyContact?: string;
+  emergencyContactNumber?: string;
+
+  // Location
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+
+  // Platform
   isVerified: boolean;
-  verificationStatus: VerificationStatus;
+  isAvailable: boolean;
+  isSuspended: boolean;
+  rating: number;
+  totalReviews: number;
+  suspensionReason?: string;
+  rejectionReason?: string;
+  verifiedAt?: string;
 }
+
+// Legacy alias used in some places
+export type Worker = WorkerProfile;
 
 export interface Booking {
   id: string;
@@ -55,7 +119,7 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
   customer?: User;
-  worker?: Worker;
+  worker?: WorkerProfile;
 }
 
 export interface Review {

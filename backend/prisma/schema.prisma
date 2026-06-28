@@ -20,6 +20,23 @@ enum Gender {
   OTHER
 }
 
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum EducationLevel {
+  NO_FORMAL_EDUCATION
+  PRIMARY
+  SECONDARY
+  HIGHER_SECONDARY
+  DIPLOMA
+  GRADUATE
+  POST_GRADUATE
+}
+
 enum SkillCategory {
   MAID
   COOK
@@ -92,47 +109,62 @@ model CustomerProfile {
 }
 
 model WorkerProfile {
-  id String @id @default(cuid())
-
+  id     String @id @default(cuid())
   userId String @unique
 
-  aadhaarNumber String @unique
+  // ── Documents ────────────────────────────────────────────
+  aadhaarNumber String  @unique
+  profilePhotoUrl String?
 
-  gender Gender?
+  // ── Personal ─────────────────────────────────────────────
+  gender        Gender?
+  dateOfBirth   DateTime?
+  height        Float?          // in cm
+  weight        Float?          // in kg
+  languagesKnown String[]       // e.g. ["Hindi", "English"]
+  education     EducationLevel?
+  maritalStatus MaritalStatus?
 
-  skillCategory SkillCategory
-
-  experience Int
-
+  // ── Professional ─────────────────────────────────────────
+  skillCategory  SkillCategory
+  experience     Int
   expectedSalary Float
+  aboutYourself  String?
+  previousCompanies String?     // free-text / JSON string
+  certifications    String?     // free-text / JSON string
+  availableTimings  String?     // e.g. "9am – 6pm"
+  preferredWorkingRadius Int?   // in km
+  canRelocate    Boolean @default(false)
 
-  city  String?
-  state String?
+  // ── Family & Emergency ───────────────────────────────────
+  fatherName            String?
+  motherName            String?
+  emergencyContact      String?
+  emergencyContactNumber String?
 
+  // ── Location ─────────────────────────────────────────────
+  city      String?
+  state     String?
   latitude  Float?
   longitude Float?
 
-  isVerified Boolean @default(false)
-
+  // ── Platform fields ──────────────────────────────────────
+  isVerified  Boolean @default(false)
   isAvailable Boolean @default(true)
+  isSuspended Boolean @default(false)
 
-  rating Float @default(0)
+  rating       Float @default(0)
+  totalReviews Int   @default(0)
 
-  totalReviews Int @default(0)
+  verifiedAt       DateTime?
+  verifiedBy       String?
+  suspensionReason String?
+  rejectionReason  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id])
-
-  verifiedAt DateTime?
-
-  verifiedBy String?
-
-  isSuspended Boolean @default(false)
-
-  suspensionReason String?
-  rejectionReason  String?
 }
 
 model EmployerProfile {
@@ -140,14 +172,11 @@ model EmployerProfile {
 
   userId String @unique
 
-  companyName String
-
+  companyName   String
   contactPerson String
-
-  address String?
-
-  city  String?
-  state String?
+  address       String?
+  city          String?
+  state         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -175,49 +204,42 @@ model Booking {
   address String
   city    String
 
-  scheduledDate DateTime
-
+  scheduledDate   DateTime
   durationMinutes Int
 
   servicePrice Float?
-
-  notes String?
+  notes        String?
 
   status BookingStatus @default(PENDING)
 
-  acceptedAt   DateTime?
-  startedAt    DateTime?
-  completedAt  DateTime?
-  cancelledAt  DateTime?
-  workerPayout Float?    @default(0)
+  acceptedAt  DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
 
-  platformFee Float? @default(0)
+  workerPayout Float? @default(0)
+  platformFee  Float? @default(0)
 
   isPaidToWorker Boolean @default(false)
+  paidAt         DateTime?
 
-  paidAt DateTime?
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String?
+
+  startedByCustomer   Boolean @default(false)
+  completedByCustomer Boolean @default(false)
+
+  replacementRequested  Boolean @default(false)
+  replacementReason     String?
+  replacementWorkerId   String?
+  replacementAssignedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  customer User @relation("CustomerBookings", fields: [customerId], references: [id])
-
+  customer   User        @relation("CustomerBookings", fields: [customerId], references: [id])
   worker     User        @relation("WorkerBookings", fields: [workerId], references: [id])
   complaints Complaint[]
-  paymentStatus PaymentStatus @default(PENDING)
-
-paymentMethod String?
-
-startedByCustomer Boolean @default(false)
-
-completedByCustomer Boolean @default(false)
-
-replacementRequested Boolean @default(false)
-
-replacementReason String?
-
-  replacementWorkerId String?
-  replacementAssignedAt DateTime?
 
   @@index([customerId])
   @@index([workerId])
@@ -227,22 +249,18 @@ replacementReason String?
 model Review {
   id String @id @default(cuid())
 
-  bookingId String @unique
-
+  bookingId  String @unique
   customerId String
   workerId   String
 
-  rating Int
-
+  rating  Int
   comment String?
 
   createdAt DateTime @default(now())
 
-  booking Booking @relation(fields: [bookingId], references: [id])
-
-  customer User @relation("CustomerReviews", fields: [customerId], references: [id])
-
-  worker User @relation("WorkerReviews", fields: [workerId], references: [id])
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  customer User    @relation("CustomerReviews", fields: [customerId], references: [id])
+  worker   User    @relation("WorkerReviews", fields: [workerId], references: [id])
 
   @@index([workerId])
 }
@@ -256,18 +274,14 @@ enum ComplaintStatus {
 model Complaint {
   id String @id @default(cuid())
 
-  bookingId String
-
+  bookingId      String
   raisedByUserId String
+  againstUserId  String
 
-  againstUserId String
-
-  reason String
-
+  reason      String
   description String?
 
-  status ComplaintStatus @default(OPEN)
-
+  status     ComplaintStatus @default(OPEN)
   adminNotes String?
 
   createdAt DateTime @default(now())

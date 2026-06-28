@@ -26,11 +26,10 @@ export const createProfile = async (
     const validatedData =
       workerProfileSchema.parse(req.body);
 
-    const profile =
-      await createWorkerProfile(
-        req.user!.userId,
-        validatedData
-      );
+    const profile = await createWorkerProfile(
+      req.user!.userId,
+      validatedData
+    );
 
     res.status(201).json({
       success: true,
@@ -49,10 +48,7 @@ export const getProfile = async (
   res: Response
 ) => {
   try {
-    const profile =
-      await getWorkerProfile(
-        req.user!.userId
-      );
+    const profile = await getWorkerProfile(req.user!.userId);
 
     res.status(200).json({
       success: true,
@@ -72,15 +68,12 @@ export const updateProfile = async (
 ) => {
   try {
     const validatedData =
-      updateWorkerProfileSchema.parse(
-        req.body
-      );
+      updateWorkerProfileSchema.parse(req.body);
 
-    const profile =
-      await updateWorkerProfile(
-        req.user!.userId,
-        validatedData
-      );
+    const profile = await updateWorkerProfile(
+      req.user!.userId,
+      validatedData
+    );
 
     res.status(200).json({
       success: true,
@@ -99,16 +92,12 @@ export const toggleAvailability = async (
   res: Response
 ) => {
   try {
-    const data =
-      availabilitySchema.parse(
-        req.body
-      );
+    const data = availabilitySchema.parse(req.body);
 
-    const result =
-      await updateAvailability(
-        req.user!.userId,
-        data.isAvailable
-      );
+    const result = await updateAvailability(
+      req.user!.userId,
+      data.isAvailable
+    );
 
     res.json({
       success: true,
@@ -122,54 +111,42 @@ export const toggleAvailability = async (
   }
 };
 
-export const updateWorkerLocation =
-  async (
-    req: AuthRequest,
-    res: Response
-  ) => {
-    try {
-      const data =
-        locationSchema.parse(
-          req.body
-        );
+export const updateWorkerLocation = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const data = locationSchema.parse(req.body);
 
-      const result =
-        await updateLocation(
-          req.user!.userId,
-          data
-        );
+    const result = await updateLocation(req.user!.userId, data);
 
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
-  export const earnings =
-  async (
-    req: AuthRequest,
-    res: Response
-  ) => {
-    try {
-      const result =
-        await getWorkerEarnings(
-          req.user!.userId
-        );
+export const earnings = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const result = await getWorkerEarnings(req.user!.userId);
 
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

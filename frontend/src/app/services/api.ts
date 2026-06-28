@@ -68,7 +68,12 @@ export const workerService = {
     return response.data;
   },
 
-  updateLocation: async (data: { latitude: number; longitude: number; city: string; state: string }) => {
+  updateLocation: async (data: {
+    latitude: number;
+    longitude: number;
+    city: string;
+    state: string;
+  }) => {
     const response = await api.patch('/worker/location', data);
     return response.data;
   },
@@ -211,7 +216,6 @@ export const adminService = {
     return response.data;
   },
 
-  // Fixed: backend requires reason in body
   suspendWorker: async (userId: string, reason: string) => {
     const response = await api.patch(`/admin/workers/${userId}/suspend`, { reason });
     return response.data;
@@ -243,9 +247,51 @@ export const adminService = {
   },
 
   assignReplacement: async (bookingId: string, workerId: string) => {
-    const response = await api.patch(`/admin/bookings/${bookingId}/reassign`, { newWorkerId: workerId });
+    const response = await api.patch(`/admin/bookings/${bookingId}/reassign`, {
+      newWorkerId: workerId,
+    });
     return response.data;
   },
+};
+
+// ── Worker profile fields (all new fields included) ───────────────────────────
+
+export type UpdateWorkerProfilePayload = {
+  // Documents
+  aadhaarNumber?: string;
+  profilePhotoUrl?: string;
+
+  // Personal
+  gender?: string;
+  dateOfBirth?: string;
+  height?: number;
+  weight?: number;
+  languagesKnown?: string[];
+  education?: string;
+  maritalStatus?: string;
+
+  // Professional
+  skillCategory?: string;
+  experience?: number;
+  expectedSalary?: number;
+  aboutYourself?: string;
+  previousCompanies?: string;
+  certifications?: string;
+  availableTimings?: string;
+  preferredWorkingRadius?: number;
+  canRelocate?: boolean;
+
+  // Family & Emergency
+  fatherName?: string;
+  motherName?: string;
+  emergencyContact?: string;
+  emergencyContactNumber?: string;
+
+  // Location
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export const profileService = {
@@ -271,17 +317,7 @@ export const profileService = {
     return response.data;
   },
 
-  updateWorker: async (data: {
-    aadhaarNumber?: string;
-    gender?: string;
-    skillCategory?: string;
-    experience?: number;
-    expectedSalary?: number;
-    city?: string;
-    state?: string;
-    latitude?: number;
-    longitude?: number;
-  }) => {
+  updateWorker: async (data: UpdateWorkerProfilePayload) => {
     const response = await api.put('/worker/profile', data);
     return response.data;
   },
