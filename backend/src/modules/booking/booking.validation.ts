@@ -3,19 +3,10 @@ import { z } from "zod";
 export const createBookingSchema = z.object({
   workerId: z.string(),
 
-  bookingType: z.enum([
-    "INSTANT",
-    "SCHEDULED",
-  ]),
+  bookingType: z.enum(["INSTANT", "SCHEDULED"]),
 
-  serviceCategory: z.enum([
-    "MAID",
-    "COOK",
-    "DRIVER",
-    "NURSE",
-    "PLUMBER",
-    "ELECTRICIAN",
-  ]),
+  // Previously an enum; now a SubCategory ID from the database
+  subCategoryId: z.string().min(1, "Service category is required"),
 
   address: z.string().min(5),
 

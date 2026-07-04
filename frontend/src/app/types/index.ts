@@ -1,7 +1,5 @@
 export type Role = 'CUSTOMER' | 'WORKER' | 'ADMIN' | 'EMPLOYER';
 
-export type SkillCategory = 'MAID' | 'COOK' | 'DRIVER' | 'NURSE' | 'PLUMBER' | 'ELECTRICIAN';
-
 export type BookingStatus =
   | 'PENDING'
   | 'ACCEPTED'
@@ -32,6 +30,32 @@ export type EducationLevel =
   | 'GRADUATE'
   | 'POST_GRADUATE';
 
+// ── Skill taxonomy types ──────────────────────────────────────────────────────
+
+export interface SubCategory {
+  id: string;
+  name: string;
+  slug: string;
+  categoryId: string;
+  category?: Category;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  subCategories: SubCategory[];
+}
+
+export interface WorkerSkill {
+  id: string;
+  workerProfileId: string;
+  subCategoryId: string;
+  subCategory: SubCategory;
+}
+
+// ── Core entities ─────────────────────────────────────────────────────────────
+
 export interface User {
   id: string;
   name: string;
@@ -52,6 +76,9 @@ export interface WorkerProfile {
   userId: string;
   user?: Pick<User, 'id' | 'name' | 'phone' | 'role'>;
 
+  // Skills (replaces single skillCategory)
+  skills: WorkerSkill[];
+
   // Documents
   aadhaarNumber: string;
   profilePhotoUrl?: string;
@@ -66,7 +93,6 @@ export interface WorkerProfile {
   maritalStatus?: MaritalStatus;
 
   // Professional
-  skillCategory: SkillCategory;
   experience: number;
   expectedSalary: number;
   aboutYourself?: string;
@@ -99,7 +125,6 @@ export interface WorkerProfile {
   verifiedAt?: string;
 }
 
-// Legacy alias used in some places
 export type Worker = WorkerProfile;
 
 export interface Booking {
@@ -107,7 +132,8 @@ export interface Booking {
   customerId: string;
   workerId: string;
   bookingType: BookingType;
-  serviceCategory: SkillCategory;
+  subCategoryId: string;
+  subCategory?: SubCategory;
   address: string;
   city: string;
   scheduledDate?: string;

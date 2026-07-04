@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
 enum Role {
   CUSTOMER
   WORKER
@@ -37,15 +39,6 @@ enum EducationLevel {
   POST_GRADUATE
 }
 
-enum SkillCategory {
-  MAID
-  COOK
-  DRIVER
-  NURSE
-  PLUMBER
-  ELECTRICIAN
-}
-
 enum BookingType {
   INSTANT
   SCHEDULED
@@ -66,14 +59,65 @@ enum PaymentStatus {
   PAID
 }
 
+enum ComplaintStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+// ── Skill Taxonomy ────────────────────────────────────────────────────────────
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique   // e.g. "Healthcare", "Domestic"
+  slug String @unique   // e.g. "healthcare", "domestic"
+
+  subCategories SubCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model SubCategory {
+  id         String @id @default(cuid())
+  name       String            // e.g. "Nurse", "Cook"
+  slug       String @unique    // e.g. "nurse", "cook"
+  categoryId String
+
+  category     Category      @relation(fields: [categoryId], references: [id])
+  workerSkills WorkerSkill[]
+  bookings     Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([categoryId])
+}
+
+// Join table: Worker ↔ SubCategory (many-to-many)
+model WorkerSkill {
+  id            String @id @default(cuid())
+  workerProfileId String
+  subCategoryId   String
+
+  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  subCategory   SubCategory   @relation(fields: [subCategoryId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([workerProfileId, subCategoryId])
+  @@index([workerProfileId])
+  @@index([subCategoryId])
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+
 model User {
   id       String @id @default(cuid())
   name     String
   phone    String @unique
   password String
-
-  role Role
-
+  role     Role
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -93,12 +137,10 @@ model CustomerProfile {
   id     String @id @default(cuid())
   userId String @unique
 
-  gender Gender?
-
-  address String?
-  city    String?
-  state   String?
-
+  gender    Gender?
+  address   String?
+  city      String?
+  state     String?
   latitude  Float?
   longitude Float?
 
@@ -113,33 +155,32 @@ model WorkerProfile {
   userId String @unique
 
   // ── Documents ────────────────────────────────────────────
-  aadhaarNumber String  @unique
+  aadhaarNumber   String  @unique
   profilePhotoUrl String?
 
   // ── Personal ─────────────────────────────────────────────
-  gender        Gender?
-  dateOfBirth   DateTime?
-  height        Float?          // in cm
-  weight        Float?          // in kg
-  languagesKnown String[]       // e.g. ["Hindi", "English"]
-  education     EducationLevel?
-  maritalStatus MaritalStatus?
+  gender         Gender?
+  dateOfBirth    DateTime?
+  height         Float?
+  weight         Float?
+  languagesKnown String[]
+  education      EducationLevel?
+  maritalStatus  MaritalStatus?
 
   // ── Professional ─────────────────────────────────────────
-  skillCategory  SkillCategory
-  experience     Int
-  expectedSalary Float
-  aboutYourself  String?
-  previousCompanies String?     // free-text / JSON string
-  certifications    String?     // free-text / JSON string
-  availableTimings  String?     // e.g. "9am – 6pm"
-  preferredWorkingRadius Int?   // in km
-  canRelocate    Boolean @default(false)
+  experience              Int
+  expectedSalary          Float
+  aboutYourself           String?
+  previousCompanies       String?
+  certifications          String?
+  availableTimings        String?
+  preferredWorkingRadius  Int?
+  canRelocate             Boolean @default(false)
 
   // ── Family & Emergency ───────────────────────────────────
-  fatherName            String?
-  motherName            String?
-  emergencyContact      String?
+  fatherName             String?
+  motherName             String?
+  emergencyContact       String?
   emergencyContactNumber String?
 
   // ── Location ─────────────────────────────────────────────
@@ -148,7 +189,7 @@ model WorkerProfile {
   latitude  Float?
   longitude Float?
 
-  // ── Platform fields ──────────────────────────────────────
+  // ── Platform ─────────────────────────────────────────────
   isVerified  Boolean @default(false)
   isAvailable Boolean @default(true)
   isSuspended Boolean @default(false)
@@ -164,12 +205,12 @@ model WorkerProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user   User          @relation(fields: [userId], references: [id])
+  skills WorkerSkill[]
 }
 
 model EmployerProfile {
-  id String @id @default(cuid())
-
+  id     String @id @default(cuid())
   userId String @unique
 
   companyName   String
@@ -184,6 +225,8 @@ model EmployerProfile {
   user User @relation(fields: [userId], references: [id])
 }
 
+// ── Bookings ──────────────────────────────────────────────────────────────────
+
 model Booking {
   id String @id @default(cuid())
 
@@ -192,34 +235,30 @@ model Booking {
 
   customerName  String
   customerPhone String
-
-  workerName  String
-  workerPhone String
+  workerName    String
+  workerPhone   String
 
   bookingType BookingType
-  review      Review?
 
-  serviceCategory SkillCategory
+  // Skill the customer booked for
+  subCategoryId String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  address String
-  city    String
-
+  address         String
+  city            String
   scheduledDate   DateTime
   durationMinutes Int
+  servicePrice    Float?
+  notes           String?
 
-  servicePrice Float?
-  notes        String?
-
-  status BookingStatus @default(PENDING)
-
+  status      BookingStatus @default(PENDING)
   acceptedAt  DateTime?
   startedAt   DateTime?
   completedAt DateTime?
   cancelledAt DateTime?
 
-  workerPayout Float? @default(0)
-  platformFee  Float? @default(0)
-
+  workerPayout   Float? @default(0)
+  platformFee    Float? @default(0)
   isPaidToWorker Boolean @default(false)
   paidAt         DateTime?
 
@@ -239,16 +278,17 @@ model Booking {
 
   customer   User        @relation("CustomerBookings", fields: [customerId], references: [id])
   worker     User        @relation("WorkerBookings", fields: [workerId], references: [id])
+  review     Review?
   complaints Complaint[]
 
   @@index([customerId])
   @@index([workerId])
   @@index([status])
+  @@index([subCategoryId])
 }
 
 model Review {
-  id String @id @default(cuid())
-
+  id         String @id @default(cuid())
   bookingId  String @unique
   customerId String
   workerId   String
@@ -265,15 +305,8 @@ model Review {
   @@index([workerId])
 }
 
-enum ComplaintStatus {
-  OPEN
-  RESOLVED
-  REJECTED
-}
-
 model Complaint {
-  id String @id @default(cuid())
-
+  id             String @id @default(cuid())
   bookingId      String
   raisedByUserId String
   againstUserId  String

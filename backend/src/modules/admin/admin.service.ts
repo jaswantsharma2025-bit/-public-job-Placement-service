@@ -8,6 +8,9 @@ export const getPendingWorkers = async () => {
     },
     include: {
       user: true,
+      skills: {
+        include: { subCategory: { include: { category: true } } },
+      },
     },
   });
 };
@@ -17,9 +20,7 @@ export const approveWorker = async (
   adminId: string
 ) => {
   return prisma.workerProfile.update({
-    where: {
-      userId,
-    },
+    where: { userId },
     data: {
       isVerified: true,
       verifiedAt: new Date(),
@@ -34,9 +35,7 @@ export const rejectWorker = async (
   reason: string
 ) => {
   return prisma.workerProfile.update({
-    where: {
-      userId,
-    },
+    where: { userId },
     data: {
       isVerified: false,
       rejectionReason: reason,
@@ -49,9 +48,7 @@ export const suspendWorker = async (
   reason: string
 ) => {
   return prisma.workerProfile.update({
-    where: {
-      userId,
-    },
+    where: { userId },
     data: {
       isSuspended: true,
       suspensionReason: reason,
@@ -59,13 +56,9 @@ export const suspendWorker = async (
   });
 };
 
-export const reactivateWorker = async (
-  userId: string
-) => {
+export const reactivateWorker = async (userId: string) => {
   return prisma.workerProfile.update({
-    where: {
-      userId,
-    },
+    where: { userId },
     data: {
       isSuspended: false,
       suspensionReason: null,
@@ -75,50 +68,20 @@ export const reactivateWorker = async (
 
 export const getAllBookings = async () => {
   return prisma.booking.findMany({
-    orderBy: {
-      createdAt: "desc",
+    include: {
+      subCategory: { include: { category: true } },
     },
+    orderBy: { createdAt: "desc" },
   });
 };
 
 export const getAnalytics = async () => {
-  const totalCustomers =
-    await prisma.user.count({
-      where: {
-        role: "CUSTOMER",
-      },
-    });
-
-  const totalWorkers =
-    await prisma.user.count({
-      where: {
-        role: "WORKER",
-      },
-    });
-
-  const verifiedWorkers =
-    await prisma.workerProfile.count({
-      where: {
-        isVerified: true,
-      },
-    });
-
-  const totalBookings =
-    await prisma.booking.count();
-
-  const completedBookings =
-    await prisma.booking.count({
-      where: {
-        status: "COMPLETED",
-      },
-    });
-
-  const revenueData =
-    await prisma.booking.aggregate({
-      _sum: {
-        platformFee: true,
-      },
-    });
+  const totalCustomers = await prisma.user.count({ where: { role: "CUSTOMER" } });
+  const totalWorkers   = await prisma.user.count({ where: { role: "WORKER" } });
+  const verifiedWorkers = await prisma.workerProfile.count({ where: { isVerified: true } });
+  const totalBookings   = await prisma.booking.count();
+  const completedBookings = await prisma.booking.count({ where: { status: "COMPLETED" } });
+  const revenueData = await prisma.booking.aggregate({ _sum: { platformFee: true } });
 
   return {
     totalCustomers,
@@ -126,129 +89,74 @@ export const getAnalytics = async () => {
     verifiedWorkers,
     totalBookings,
     completedBookings,
-    totalRevenue:
-      revenueData._sum.platformFee || 0,
+    totalRevenue: revenueData._sum.platformFee || 0,
   };
 };
 
-export const forceCompleteBooking =
-  async (bookingId: string) => {
-    return prisma.booking.update({
-      where: {
-        id: bookingId,
-      },
-      data: {
-        status: "COMPLETED",
-        completedAt: new Date(),
-      },
-    });
+export const forceCompleteBooking = async (bookingId: string) => {
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data:  { status: "COMPLETED", completedAt: new Date() },
+  });
 };
 
-export const forceCancelBooking =
-  async (bookingId: string) => {
-    return prisma.booking.update({
-      where: {
-        id: bookingId,
-      },
-      data: {
-        status: "CANCELLED",
-        cancelledAt: new Date(),
-      },
-    });
+export const forceCancelBooking = async (bookingId: string) => {
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data:  { status: "CANCELLED", cancelledAt: new Date() },
+  });
 };
 
-export const reassignBooking =
-  async (
-    bookingId: string,
-    newWorkerId: string
-  ) => {
+export const reassignBooking = async (
+  bookingId: string,
+  newWorkerId: string
+) => {
+  const worker = await prisma.workerProfile.findUnique({
+    where: { userId: newWorkerId },
+    include: { user: true },
+  });
 
-    const worker =
-      await prisma.workerProfile.findUnique({
-        where: {
-          userId: newWorkerId,
-        },
-        include: {
-          user: true,
-        },
-      });
+  if (!worker)           throw new Error("Worker not found");
+  if (!worker.isVerified) throw new Error("Worker not verified");
+  if (worker.isSuspended) throw new Error("Worker suspended");
+  if (!worker.isAvailable) throw new Error("Worker unavailable");
 
-    if (!worker) {
-      throw new Error(
-        "Worker not found"
-      );
-    }
-
-    if (!worker.isVerified) {
-      throw new Error(
-        "Worker not verified"
-      );
-    }
-
-    if (worker.isSuspended) {
-      throw new Error(
-        "Worker suspended"
-      );
-    }
-
-    if (!worker.isAvailable) {
-      throw new Error(
-        "Worker unavailable"
-      );
-    }
-
-    return prisma.booking.update({
-      where: {
-        id: bookingId,
-      },
-      data: {
-        workerId: newWorkerId,
-        workerName: worker.user.name,
-        workerPhone: worker.user.phone,
-
-        status: "PENDING",
-
-        acceptedAt: null,
-      },
-    });
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      workerId:    newWorkerId,
+      workerName:  worker.user.name,
+      workerPhone: worker.user.phone,
+      status:      "PENDING",
+      acceptedAt:  null,
+    },
+  });
 };
 
-export const getReplacementCandidates =
-  async (bookingId: string) => {
+export const getReplacementCandidates = async (bookingId: string) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+  });
 
-    const booking =
-      await prisma.booking.findUnique({
-        where: {
-          id: bookingId,
-        },
-      });
+  if (!booking) throw new Error("Booking not found");
 
-    if (!booking) {
-      throw new Error(
-        "Booking not found"
-      );
-    }
-
-    return prisma.workerProfile.findMany({
-      where: {
-        skillCategory:
-          booking.serviceCategory,
-
-        city: booking.city,
-
-        isVerified: true,
-
-        isAvailable: true,
-
-        isSuspended: false,
-
-        userId: {
-          not: booking.workerId,
-        },
+  // Find workers who have the same subCategory skill as the booking
+  return prisma.workerProfile.findMany({
+    where: {
+      isVerified:  true,
+      isAvailable: true,
+      isSuspended: false,
+      city:        booking.city,
+      userId:      { not: booking.workerId },
+      skills: {
+        some: { subCategoryId: booking.subCategoryId },
       },
-
-      include: {
-        user: true,
+    },
+    include: {
+      user: true,
+      skills: {
+        include: { subCategory: { include: { category: true } } },
       },
-    });
+    },
+  });
 };

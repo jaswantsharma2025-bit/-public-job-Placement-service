@@ -1,24 +1,37 @@
 import prisma from "../../config/prisma";
 
-export const getWorkers = async (
-  filters: {
-    skillCategory?: string;
-    city?: string;
-    isAvailable?: boolean;
-    isVerified?: boolean;
-  }
-) => {
+const workerInclude = {
+  user: {
+    select: { id: true, name: true, phone: true },
+  },
+  skills: {
+    include: {
+      subCategory: {
+        include: { category: true },
+      },
+    },
+  },
+} as const;
+
+export const getWorkers = async (filters: {
+  subCategoryIds?: string[];  // filter by one or more sub-category IDs
+  city?: string;
+  isAvailable?: boolean;
+  isVerified?: boolean;
+}) => {
   return prisma.workerProfile.findMany({
     where: {
-      ...(filters.skillCategory && {
-        skillCategory: filters.skillCategory as any,
+      // If subCategoryIds provided, worker must have at least one matching skill
+      ...(filters.subCategoryIds && filters.subCategoryIds.length > 0 && {
+        skills: {
+          some: {
+            subCategoryId: { in: filters.subCategoryIds },
+          },
+        },
       }),
 
       ...(filters.city && {
-        city: {
-          equals: filters.city,
-          mode: "insensitive",
-        },
+        city: { equals: filters.city, mode: "insensitive" },
       }),
 
       ...(filters.isAvailable !== undefined && {
@@ -29,42 +42,16 @@ export const getWorkers = async (
         isVerified: filters.isVerified,
       }),
     },
-
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-        },
-      },
-    },
+    include: workerInclude,
   });
 };
 
-export const getWorkerById = async (
-  workerId: string
-) => {
-  const worker =
-    await prisma.workerProfile.findUnique({
-      where: {
-        id: workerId,
-      },
+export const getWorkerById = async (workerId: string) => {
+  const worker = await prisma.workerProfile.findUnique({
+    where: { id: workerId },
+    include: workerInclude,
+  });
 
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-          },
-        },
-      },
-    });
-
-  if (!worker) {
-    throw new Error("Worker not found");
-  }
-
+  if (!worker) throw new Error("Worker not found");
   return worker;
 };

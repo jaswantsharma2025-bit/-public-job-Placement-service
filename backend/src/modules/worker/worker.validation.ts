@@ -1,15 +1,6 @@
 import { z } from "zod";
 
-// ── Shared enums ─────────────────────────────────────────────────────────────
-
-const skillCategoryEnum = z.enum([
-  "MAID",
-  "COOK",
-  "DRIVER",
-  "NURSE",
-  "PLUMBER",
-  "ELECTRICIAN",
-]);
+// ── Shared enums ──────────────────────────────────────────────────────────────
 
 const genderEnum = z.enum(["MALE", "FEMALE", "OTHER"]);
 
@@ -34,28 +25,28 @@ const educationLevelEnum = z.enum([
 
 export const workerProfileSchema = z.object({
   // Documents
-  aadhaarNumber:  z.string().length(12, "Aadhaar must be exactly 12 digits"),
+  aadhaarNumber:   z.string().length(12, "Aadhaar must be exactly 12 digits"),
   profilePhotoUrl: z.string().url().optional(),
 
   // Personal
-  gender:        genderEnum.optional(),
-  dateOfBirth:   z.string().optional(),   // ISO date string; service converts to Date
-  height:        z.number().positive().optional(),
-  weight:        z.number().positive().optional(),
+  gender:         genderEnum.optional(),
+  dateOfBirth:    z.string().optional(),
+  height:         z.number().positive().optional(),
+  weight:         z.number().positive().optional(),
   languagesKnown: z.array(z.string()).optional(),
-  education:     educationLevelEnum.optional(),
-  maritalStatus: maritalStatusEnum.optional(),
+  education:      educationLevelEnum.optional(),
+  maritalStatus:  maritalStatusEnum.optional(),
 
-  // Professional
-  skillCategory:           skillCategoryEnum,
-  experience:              z.number().min(0),
-  expectedSalary:          z.number().positive(),
-  aboutYourself:           z.string().max(1000).optional(),
-  previousCompanies:       z.string().optional(),
-  certifications:          z.string().optional(),
-  availableTimings:        z.string().optional(),
-  preferredWorkingRadius:  z.number().int().positive().optional(),
-  canRelocate:             z.boolean().optional(),
+  // Professional — skillIds replaces skillCategory enum
+  skillIds:               z.array(z.string()).min(1, "At least one skill is required"),
+  experience:             z.number().min(0),
+  expectedSalary:         z.number().positive(),
+  aboutYourself:          z.string().max(1000).optional(),
+  previousCompanies:      z.string().optional(),
+  certifications:         z.string().optional(),
+  availableTimings:       z.string().optional(),
+  preferredWorkingRadius: z.number().int().positive().optional(),
+  canRelocate:            z.boolean().optional(),
 
   // Family & Emergency
   fatherName:             z.string().optional(),
@@ -72,7 +63,11 @@ export const workerProfileSchema = z.object({
 
 // ── Partial update schema ─────────────────────────────────────────────────────
 
-export const updateWorkerProfileSchema = workerProfileSchema.partial();
+export const updateWorkerProfileSchema = workerProfileSchema
+  .partial()
+  .extend({
+    skillIds: z.array(z.string()).min(1).optional(),
+  });
 
 // ── Availability ──────────────────────────────────────────────────────────────
 
