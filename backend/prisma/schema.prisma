@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Enums ─────────────────────────────────────────────────────────────────────
-
 enum Role {
   CUSTOMER
   WORKER
@@ -65,12 +63,17 @@ enum ComplaintStatus {
   REJECTED
 }
 
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
 // ── Skill Taxonomy ────────────────────────────────────────────────────────────
 
 model Category {
   id   String @id @default(cuid())
-  name String @unique   // e.g. "Healthcare", "Domestic"
-  slug String @unique   // e.g. "healthcare", "domestic"
+  name String @unique
+  slug String @unique
 
   subCategories SubCategory[]
 
@@ -80,8 +83,8 @@ model Category {
 
 model SubCategory {
   id         String @id @default(cuid())
-  name       String            // e.g. "Nurse", "Cook"
-  slug       String @unique    // e.g. "nurse", "cook"
+  name       String
+  slug       String @unique
   categoryId String
 
   category     Category      @relation(fields: [categoryId], references: [id])
@@ -94,9 +97,8 @@ model SubCategory {
   @@index([categoryId])
 }
 
-// Join table: Worker ↔ SubCategory (many-to-many)
 model WorkerSkill {
-  id            String @id @default(cuid())
+  id              String @id @default(cuid())
   workerProfileId String
   subCategoryId   String
 
@@ -110,12 +112,25 @@ model WorkerSkill {
   @@index([subCategoryId])
 }
 
+// ── Platform Payment Info (admin sets once, shown to all workers) ─────────────
+
+model PlatformPaymentInfo {
+  id        String @id @default(cuid())
+  upiId     String              // e.g. "instantstaff@upi"
+  upiName   String              // e.g. "Instant Staff Pvt Ltd"
+  qrImageUrl String?            // URL to QR code image
+  updatedBy String              // admin userId who last updated
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 
 model User {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   name     String
-  phone    String @unique
+  phone    String  @unique
   password String
   role     Role
   isActive Boolean @default(true)
@@ -154,11 +169,9 @@ model WorkerProfile {
   id     String @id @default(cuid())
   userId String @unique
 
-  // ── Documents ────────────────────────────────────────────
   aadhaarNumber   String  @unique
   profilePhotoUrl String?
 
-  // ── Personal ─────────────────────────────────────────────
   gender         Gender?
   dateOfBirth    DateTime?
   height         Float?
@@ -167,29 +180,25 @@ model WorkerProfile {
   education      EducationLevel?
   maritalStatus  MaritalStatus?
 
-  // ── Professional ─────────────────────────────────────────
-  experience              Int
-  expectedSalary          Float
-  aboutYourself           String?
-  previousCompanies       String?
-  certifications          String?
-  availableTimings        String?
-  preferredWorkingRadius  Int?
-  canRelocate             Boolean @default(false)
+  experience             Int
+  expectedSalary         Float
+  aboutYourself          String?
+  previousCompanies      String?
+  certifications         String?
+  availableTimings       String?
+  preferredWorkingRadius Int?
+  canRelocate            Boolean @default(false)
 
-  // ── Family & Emergency ───────────────────────────────────
   fatherName             String?
   motherName             String?
   emergencyContact       String?
   emergencyContactNumber String?
 
-  // ── Location ─────────────────────────────────────────────
   city      String?
   state     String?
   latitude  Float?
   longitude Float?
 
-  // ── Platform ─────────────────────────────────────────────
   isVerified  Boolean @default(false)
   isAvailable Boolean @default(true)
   isSuspended Boolean @default(false)
@@ -207,6 +216,7 @@ model WorkerProfile {
 
   user   User          @relation(fields: [userId], references: [id])
   skills WorkerSkill[]
+  wallet WorkerWallet?
 }
 
 model EmployerProfile {
@@ -225,6 +235,54 @@ model EmployerProfile {
   user User @relation(fields: [userId], references: [id])
 }
 
+// ── Wallet ────────────────────────────────────────────────────────────────────
+
+model WorkerWallet {
+  id              String @id @default(cuid())
+  workerProfileId String @unique
+
+  pendingBalance   Float @default(0)
+  settledBalance   Float @default(0)
+  lifetimeEarnings Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  workerProfile WorkerProfile       @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+  settlements   Settlement[]
+}
+
+model WalletTransaction {
+  id        String          @id @default(cuid())
+  walletId  String
+  type      TransactionType
+
+  amount      Float
+  description String
+  bookingId   String?
+
+  createdAt DateTime @default(now())
+
+  wallet WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model Settlement {
+  id        String @id @default(cuid())
+  walletId  String
+  settledBy String
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  wallet WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
 // ── Bookings ──────────────────────────────────────────────────────────────────
 
 model Booking {
@@ -240,7 +298,6 @@ model Booking {
 
   bookingType BookingType
 
-  // Skill the customer booked for
   subCategoryId String
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
@@ -257,18 +314,22 @@ model Booking {
   completedAt DateTime?
   cancelledAt DateTime?
 
-  workerPayout   Float? @default(0)
-  platformFee    Float? @default(0)
+  workerPayout   Float?  @default(0)
+  platformFee    Float?  @default(0)
   isPaidToWorker Boolean @default(false)
   paidAt         DateTime?
 
-  paymentStatus PaymentStatus @default(PENDING)
-  paymentMethod String?
+  paymentStatus     PaymentStatus @default(PENDING)
+  paymentMethod     String?
+
+  // Worker confirms customer paid via UPI
+  isPaidByCustomer    Boolean @default(false)
+  paidByCustomerAt    DateTime?
 
   startedByCustomer   Boolean @default(false)
   completedByCustomer Boolean @default(false)
 
-  replacementRequested  Boolean @default(false)
+  replacementRequested  Boolean  @default(false)
   replacementReason     String?
   replacementWorkerId   String?
   replacementAssignedAt DateTime?

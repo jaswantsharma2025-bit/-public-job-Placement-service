@@ -1,11 +1,11 @@
 import { Response, Request } from "express";
-
 import { AuthRequest } from "../../middleware/authMiddleware";
 
 import {
   createWorkerProfile,
   getWorkerEarnings,
   getWorkerProfile,
+  getWorkerWallet,
   updateAvailability,
   updateLocation,
   updateWorkerProfile,
@@ -25,9 +25,7 @@ import prisma from "../../config/prisma";
 export const getCategories = async (_req: Request, res: Response) => {
   try {
     const categories = await prisma.category.findMany({
-      include: {
-        subCategories: { orderBy: { name: "asc" } },
-      },
+      include: { subCategories: { orderBy: { name: "asc" } } },
       orderBy: { name: "asc" },
     });
     res.json({ success: true, data: categories });
@@ -36,7 +34,7 @@ export const getCategories = async (_req: Request, res: Response) => {
   }
 };
 
-// ── Worker-authenticated routes ───────────────────────────────────────────────
+// ── Profile ───────────────────────────────────────────────────────────────────
 
 export const createProfile = async (req: AuthRequest, res: Response) => {
   try {
@@ -91,6 +89,17 @@ export const earnings = async (req: AuthRequest, res: Response) => {
   try {
     const result = await getWorkerEarnings(req.user!.userId);
     res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// ── Wallet ────────────────────────────────────────────────────────────────────
+
+export const getWallet = async (req: AuthRequest, res: Response) => {
+  try {
+    const wallet = await getWorkerWallet(req.user!.userId);
+    res.json({ success: true, data: wallet });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

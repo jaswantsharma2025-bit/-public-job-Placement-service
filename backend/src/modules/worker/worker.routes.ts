@@ -1,5 +1,4 @@
 import express from "express";
-
 import { authMiddleware } from "../../middleware/authMiddleware";
 import { authorizeRoles } from "../../middleware/roleMiddleware";
 
@@ -8,6 +7,7 @@ import {
   earnings,
   getCategories,
   getProfile,
+  getWallet,
   updateProfile,
   updateWorkerLocation,
   toggleAvailability,
@@ -16,7 +16,6 @@ import {
 const router = express.Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
-// GET /api/worker/categories — used by frontend skill pickers (no auth needed)
 router.get("/categories", getCategories);
 
 // ── Worker-authenticated ──────────────────────────────────────────────────────
@@ -28,5 +27,6 @@ router.put("/profile",        updateProfile);
 router.patch("/availability", toggleAvailability);
 router.patch("/location",     updateWorkerLocation);
 router.get("/earnings",       earnings);
+router.get("/wallet",         getWallet);
 
 export default router;
