@@ -18,6 +18,8 @@ import {
   locationSchema,
 } from "./worker.validation";
 
+import { getPlatformPaymentInfo } from "../admin/admin.service";
+
 import prisma from "../../config/prisma";
 
 // ── Categories (public) ───────────────────────────────────────────────────────
@@ -100,6 +102,17 @@ export const getWallet = async (req: AuthRequest, res: Response) => {
   try {
     const wallet = await getWorkerWallet(req.user!.userId);
     res.json({ success: true, data: wallet });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// ── Payment Info (worker-visible, admin-managed) ───────────────────────────────
+
+export const getPlatformPaymentInfoHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    const info = await getPlatformPaymentInfo();
+    res.json({ success: true, data: info });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

@@ -6,6 +6,7 @@ import {
   createProfile,
   earnings,
   getCategories,
+  getPlatformPaymentInfoHandler,
   getProfile,
   getWallet,
   updateProfile,
@@ -21,12 +22,13 @@ router.get("/categories", getCategories);
 // ── Worker-authenticated ──────────────────────────────────────────────────────
 router.use(authMiddleware, authorizeRoles("WORKER"));
 
-router.post("/profile",       createProfile);
-router.get("/profile",        getProfile);
-router.put("/profile",        updateProfile);
+router.post("/profile", createProfile);
+router.get("/profile", getProfile);
+router.put("/profile", updateProfile);
 router.patch("/availability", toggleAvailability);
-router.patch("/location",     updateWorkerLocation);
-router.get("/earnings",       earnings);
-router.get("/wallet",         getWallet);
+router.patch("/location", updateWorkerLocation);
+router.get("/earnings", earnings);
+router.get("/wallet", getWallet);
+router.get("/payment-info", getPlatformPaymentInfoHandler);
 
 export default router;

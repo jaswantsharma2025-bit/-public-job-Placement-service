@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { bookingService, adminService } from '../../services/api';
+import { bookingService, profileService } from '../../services/api';
 import { Calendar, MapPin, DollarSign, Star, Wallet, CheckCircle, QrCode } from 'lucide-react';
 
 const StarDisplay = ({ rating }: { rating: number }) => (
@@ -44,7 +44,7 @@ export default function WorkerBookings() {
   // Fetch platform payment info for QR popup
   const { data: paymentInfo } = useQuery({
     queryKey: ['payment-info-worker'],
-    queryFn: adminService.getPaymentInfo,
+    queryFn: profileService.getPaymentInfo,
   });
 
   const acceptMutation = useMutation({

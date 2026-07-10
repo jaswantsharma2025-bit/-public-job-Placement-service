@@ -229,6 +229,10 @@ export const profileService = {
     const response = await api.get('/worker/profile');
     return response.data.data;
   },
+  getPaymentInfo: async () => {
+    const response = await api.get('/worker/payment-info');
+    return response.data.data;
+  },
 };
 
 export const walletService = {
