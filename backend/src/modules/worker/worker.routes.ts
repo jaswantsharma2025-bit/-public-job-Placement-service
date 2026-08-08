@@ -1,13 +1,14 @@
 import express from "express";
-
 import { authMiddleware } from "../../middleware/authMiddleware";
-
 import { authorizeRoles } from "../../middleware/roleMiddleware";
 
 import {
   createProfile,
   earnings,
+  getCategories,
+  getPlatformPaymentInfoHandler,
   getProfile,
+  getWallet,
   updateProfile,
   updateWorkerLocation,
   toggleAvailability,
@@ -15,47 +16,19 @@ import {
 
 const router = express.Router();
 
-router.use(
-  authMiddleware,
-  authorizeRoles("WORKER")
-);
+// ── Public ────────────────────────────────────────────────────────────────────
+router.get("/categories", getCategories);
 
-router.post(
-  "/profile",
-  createProfile
-);
+// ── Worker-authenticated ──────────────────────────────────────────────────────
+router.use(authMiddleware, authorizeRoles("WORKER"));
 
-router.get(
-  "/profile",
-  getProfile
-);
-
-router.put(
-  "/profile",
-  updateProfile
-);
-
-router.patch(
-  "/availability",
-  authMiddleware,
-  authorizeRoles("WORKER"),
-  toggleAvailability
-);
-
-router.patch(
-  "/location",
-  authMiddleware,
-  authorizeRoles("WORKER"),
-  updateWorkerLocation
-);
-
-router.get(
-  "/earnings",
-  authMiddleware,
-  authorizeRoles("WORKER"),
-  earnings
-);
-
-
+router.post("/profile", createProfile);
+router.get("/profile", getProfile);
+router.put("/profile", updateProfile);
+router.patch("/availability", toggleAvailability);
+router.patch("/location", updateWorkerLocation);
+router.get("/earnings", earnings);
+router.get("/wallet", getWallet);
+router.get("/payment-info", getPlatformPaymentInfoHandler);
 
 export default router;

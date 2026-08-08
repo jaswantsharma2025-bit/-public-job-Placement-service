@@ -30,6 +30,8 @@ import PendingWorkers from './features/admin/PendingWorkers';
 import WorkerManagement from './features/admin/WorkerManagement';
 import BookingManagement from './features/admin/BookingManagement';
 import ComplaintManagement from './features/admin/ComplaintManagement';
+import AdminWallets from './features/admin/AdminWallets';
+import AdminPaymentSettings from './features/admin/AdminPaymentSettings';
 
 import EmployerPortal from './features/employer/EmployerPortal';
 
@@ -98,6 +100,9 @@ function AppRoutes() {
       <Route path="/admin/workers" element={<ProtectedRoute allowedRoles={['ADMIN']}><WorkerManagement /></ProtectedRoute>} />
       <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={['ADMIN']}><BookingManagement /></ProtectedRoute>} />
       <Route path="/admin/complaints" element={<ProtectedRoute allowedRoles={['ADMIN']}><ComplaintManagement /></ProtectedRoute>} />
+      <Route path="/admin/complaints" element={<ProtectedRoute allowedRoles={['ADMIN']}><ComplaintManagement /></ProtectedRoute>} />
+<Route path="/admin/wallets" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminWallets /></ProtectedRoute>} />
+<Route path="/admin/payment-settings" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminPaymentSettings /></ProtectedRoute>} />
 
       <Route path="/employer" element={<EmployerPortal />} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,17 +1,18 @@
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
-import { Briefcase, ChefHat, Car, HeartPulse, Wrench, Zap, Star, Users, CheckCircle, Shield } from 'lucide-react';
+import { Briefcase, ChefHat, Car, HeartPulse, Wrench, Zap, Star, Users, CheckCircle, Shield, Search, X, ArrowRight } from 'lucide-react';
 
 const categories = [
-  { name: 'Maid', icon: Briefcase, category: 'MAID', color: 'bg-pink-100 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300' },
-  { name: 'Cook', icon: ChefHat, category: 'COOK', color: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300' },
-  { name: 'Driver', icon: Car, category: 'DRIVER', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
-  { name: 'Nurse', icon: HeartPulse, category: 'NURSE', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
-  { name: 'Plumber', icon: Wrench, category: 'PLUMBER', color: 'bg-cyan-100 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' },
-  { name: 'Electrician', icon: Zap, category: 'ELECTRICIAN', color: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' },
+  { name: 'Maid', icon: Briefcase, category: 'MAID', desc: 'House cleaning & household chores' },
+  { name: 'Cook', icon: ChefHat, category: 'COOK', desc: 'Home cooking & meal preparation' },
+  { name: 'Driver', icon: Car, category: 'DRIVER', desc: 'Personal & family driver services' },
+  { name: 'Nurse', icon: HeartPulse, category: 'NURSE', desc: 'Patient care & medical assistance' },
+  { name: 'Plumber', icon: Wrench, category: 'PLUMBER', desc: 'Plumbing repair & installation' },
+  { name: 'Electrician', icon: Zap, category: 'ELECTRICIAN', desc: 'Electrical work & wiring' },
 ];
 
 const stats = [
@@ -29,18 +30,94 @@ const testimonials = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedService, setSelectedService] = useState('');
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const filtered = query.trim()
+    ? categories.filter(c =>
+        c.name.toLowerCase().includes(query.toLowerCase()) ||
+        c.desc.toLowerCase().includes(query.toLowerCase())
+      )
+    : categories;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleServiceClick = (name: string) => {
+    setSelectedService(name);
+    setShowDropdown(false);
+    setQuery(name);
+    setShowModal(true);
+  };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950">
-      <nav className="border-b border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex-shrink-0 font-bold text-xl">INSTAFF</div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => navigate('/auth/login')}>
+    <div className="min-h-screen bg-white dark:bg-neutral-950 font-sans">
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="relative bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl w-full max-w-sm p-8 space-y-6">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-neutral-400 hover:text-black dark:hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="space-y-1.5">
+              <p className="text-xs text-neutral-400 uppercase tracking-[0.2em] font-medium">One more step</p>
+              <h2 className="text-2xl font-black text-black dark:text-white">Book a {selectedService}</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                Sign in or create a free account to browse and book verified {selectedService.toLowerCase()}s near you.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button
+                className="w-full h-11 bg-black hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 text-white font-semibold text-sm"
+                onClick={() => navigate('/auth/login')}
+              >
                 Sign In
               </Button>
-              <Button onClick={() => navigate('/auth/register')}>
+              <Button
+                variant="outline"
+                className="w-full h-11 border-neutral-300 dark:border-neutral-700 text-black dark:text-white font-semibold text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                onClick={() => navigate('/auth/register')}
+              >
+                Create Free Account
+              </Button>
+            </div>
+            <p className="text-center text-xs text-neutral-400">100% free to sign up · No credit card required</p>
+          </div>
+        </div>
+      )}
+
+      {/* NAV */}
+      <nav className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <span className="font-black text-xl tracking-widest text-black dark:text-white">INSTAFF</span>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                className="text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white"
+                onClick={() => navigate('/auth/login')}
+              >
+                Sign In
+              </Button>
+              <Button
+                className="bg-black hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 text-white text-sm font-semibold h-9 px-5"
+                onClick={() => navigate('/auth/register')}
+              >
                 Get Started
               </Button>
             </div>
@@ -48,84 +125,214 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/20 dark:via-neutral-950 dark:to-purple-950/20 py-20">
+      {/* HERO — light, professional */}
+      <section className="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-8">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-              Verified Workers in <span className="text-blue-600">Minutes</span>
-            </h1>
-            <p className="text-xl text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
-              India's most trusted on-demand workforce platform. Find maids, cooks, drivers, nurses, and more.
-            </p>
-            <div className="flex gap-3 max-w-md mx-auto">
-              <Input placeholder="Search for services..." className="h-12" />
-              <Button size="lg" className="h-12 px-8">Search</Button>
-            </div>
-            <div className="flex gap-4 justify-center flex-wrap">
-              <Button size="lg" onClick={() => navigate('/auth/register')}>
-                Find Workers
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/auth/register')}>
-                Become a Worker
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-12">
 
-      <section className="py-16 bg-white dark:bg-neutral-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Popular Services</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((category) => (
-              <Card
-                key={category.category}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigate('/auth/register')}
-              >
-                <CardContent className="p-6 text-center space-y-3">
-                  <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${category.color}`}>
-                    <category.icon className="w-8 h-8" />
+            {/* Left */}
+            <div className="space-y-6 max-w-xl">
+              <Badge className="bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-semibold px-3 py-1 rounded-full border-0">
+                India's Most Trusted Workforce Platform
+              </Badge>
+              <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-[1.05] text-black dark:text-white">
+                Verified Workers,<br />
+                <span className="text-neutral-400 dark:text-neutral-500">in Minutes.</span>
+              </h1>
+              <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg leading-relaxed">
+                Find background-checked maids, cooks, drivers, nurses and more — instantly or scheduled, at your doorstep.
+              </p>
+              <div className="flex gap-3 flex-wrap">
+                <Button
+                  className="h-11 px-7 bg-black hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 text-white font-semibold text-sm"
+                  onClick={() => navigate('/auth/register')}
+                >
+                  Find Workers
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 px-7 border-neutral-300 dark:border-neutral-700 text-black dark:text-white font-semibold text-sm hover:bg-white dark:hover:bg-neutral-800"
+                  onClick={() => navigate('/auth/register')}
+                >
+                  Become a Worker
+                </Button>
+              </div>
+            </div>
+
+            {/* Right — search card */}
+            <div className="w-full md:w-96">
+              <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-black dark:text-white mb-1">What are you looking for?</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Search from our verified service categories</p>
+                </div>
+                <div className="relative" ref={searchRef}>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      <Input
+                        placeholder="e.g. Maid, Cook, Driver..."
+                        value={query}
+                        onChange={e => { setQuery(e.target.value); setShowDropdown(true); }}
+                        onFocus={() => setShowDropdown(true)}
+                        className="h-11 pl-9 text-sm border-neutral-200 dark:border-neutral-700 focus-visible:ring-black dark:focus-visible:ring-white"
+                      />
+                    </div>
+                    <Button
+                      size="icon"
+                      className="h-11 w-11 bg-black hover:bg-neutral-800 dark:bg-white dark:text-black text-white shrink-0"
+                      onClick={() => { if (filtered.length === 1) handleServiceClick(filtered[0].name); else setShowDropdown(v => !v); }}
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <p className="font-medium">{category.name}</p>
-                  <Badge variant="secondary" className="text-xs">Available</Badge>
-                </CardContent>
-              </Card>
-            ))}
+
+                  {/* Dropdown */}
+                  {showDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl overflow-hidden z-40">
+                      {filtered.length > 0 ? filtered.map(cat => (
+                        <button
+                          key={cat.category}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-left group"
+                          onClick={() => handleServiceClick(cat.name)}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 group-hover:bg-black dark:group-hover:bg-white transition-colors">
+                            <cat.icon className="w-4 h-4 text-neutral-500 dark:text-neutral-300 group-hover:text-white dark:group-hover:text-black transition-colors" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-black dark:text-white">{cat.name}</p>
+                            <p className="text-xs text-neutral-400">{cat.desc}</p>
+                          </div>
+                        </button>
+                      )) : (
+                        <div className="px-4 py-4 text-sm text-neutral-500 text-center">No services found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick chips */}
+                <div className="flex flex-wrap gap-2">
+                  {categories.slice(0, 4).map(cat => (
+                    <button
+                      key={cat.category}
+                      onClick={() => handleServiceClick(cat.name)}
+                      className="text-xs px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white transition-colors font-medium"
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => navigate('/auth/register')}
+                    className="text-xs px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-700 text-neutral-400 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white transition-colors font-medium"
+                  >
+                    +2 more
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="py-16 bg-neutral-50 dark:bg-neutral-900/50">
+      {/* STATS */}
+      <section className="py-12 border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center space-y-2">
-                <stat.icon className="w-10 h-10 mx-auto text-blue-600" />
-                <p className="text-3xl font-bold">{stat.value}</p>
-                <p className="text-neutral-600 dark:text-neutral-400">{stat.label}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-neutral-100 dark:divide-neutral-800">
+            {stats.map((stat, idx) => (
+              <div key={stat.label} className={`text-center py-4 px-6 ${idx > 0 ? '' : ''}`}>
+                <p className="text-3xl md:text-4xl font-black text-black dark:text-white">{stat.value}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-widest font-medium mt-1">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* SERVICES */}
+      <section className="py-16 bg-neutral-50 dark:bg-neutral-900/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10 gap-4">
+            <div>
+              <p className="text-xs text-neutral-400 uppercase tracking-[0.2em] font-medium mb-2">What We Offer</p>
+              <h2 className="text-3xl md:text-4xl font-black text-black dark:text-white">Popular Services</h2>
+            </div>
+            <button
+              onClick={() => navigate('/auth/register')}
+              className="text-sm font-semibold text-black dark:text-white underline underline-offset-4 hover:opacity-60 transition-opacity self-start md:self-auto"
+            >
+              View all services →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {categories.map((category) => (
+              <div
+                key={category.category}
+                className="group cursor-pointer bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 text-center space-y-3 hover:border-neutral-400 dark:hover:border-neutral-500 hover:shadow-md transition-all duration-200"
+                onClick={() => handleServiceClick(category.name)}
+              >
+                <div className="w-12 h-12 mx-auto rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-hover:bg-black dark:group-hover:bg-white transition-colors duration-200">
+                  <category.icon className="w-5 h-5 text-neutral-500 dark:text-neutral-300 group-hover:text-white dark:group-hover:text-black transition-colors duration-200" />
+                </div>
+                <p className="font-semibold text-sm text-black dark:text-white">{category.name}</p>
+                <Badge variant="secondary" className="text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-0 font-medium">
+                  Available
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
       <section className="py-16 bg-white dark:bg-neutral-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">What Our Customers Say</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="mb-10">
+            <p className="text-xs text-neutral-400 uppercase tracking-[0.2em] font-medium mb-2">Simple Process</p>
+            <h2 className="text-3xl md:text-4xl font-black text-black dark:text-white">How It Works</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { step: '01', title: 'Search', desc: 'Browse verified workers by category, location, and availability.' },
+              { step: '02', title: 'Book', desc: 'Instant or scheduled bookings with transparent pricing upfront.' },
+              { step: '03', title: 'Done', desc: 'Worker arrives, job gets done. Rate and review after service.' },
+            ].map((item, idx) => (
+              <div key={idx} className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 space-y-3">
+                <p className="text-5xl font-black text-neutral-200 dark:text-neutral-700 leading-none">{item.step}</p>
+                <p className="text-xl font-black text-black dark:text-white">{item.title}</p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="py-16 bg-neutral-50 dark:bg-neutral-900/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10">
+            <p className="text-xs text-neutral-400 uppercase tracking-[0.2em] font-medium mb-2">Customer Stories</p>
+            <h2 className="text-3xl md:text-4xl font-black text-black dark:text-white">What People Say</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
             {testimonials.map((testimonial, idx) => (
-              <Card key={idx}>
+              <Card key={idx} className="border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-none bg-white dark:bg-neutral-950">
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex gap-1">
+                  <div className="flex gap-0.5">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-neutral-700 dark:text-neutral-300">{testimonial.comment}</p>
-                  <div>
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-neutral-500">{testimonial.role}</p>
+                  <p className="text-neutral-700 dark:text-neutral-300 text-sm leading-relaxed">"{testimonial.comment}"</p>
+                  <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-black text-neutral-600 dark:text-neutral-300">
+                      {testimonial.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-black dark:text-white">{testimonial.name}</p>
+                      <p className="text-xs text-neutral-400">{testimonial.role}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -134,12 +341,39 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="bg-neutral-900 dark:bg-black text-white py-12">
+      {/* CTA BANNER — black only here, as accent */}
+      <section className="py-16 bg-black dark:bg-neutral-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <p className="text-neutral-500 text-xs uppercase tracking-[0.2em] font-medium">Get Started Today</p>
+          <h2 className="text-4xl md:text-5xl font-black text-white">Ready to find help?</h2>
+          <p className="text-neutral-400 text-base max-w-md mx-auto">
+            Join thousands of households already using INSTAFF for reliable, verified home staffing.
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Button
+              className="h-11 px-8 bg-white hover:bg-neutral-200 text-black font-semibold text-sm"
+              onClick={() => navigate('/auth/register')}
+            >
+              Find Workers
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 px-8 border-neutral-600 text-white hover:bg-neutral-800 hover:text-white bg-transparent font-semibold text-sm"
+              onClick={() => navigate('/auth/register')}
+            >
+              Become a Worker
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-2xl font-bold mb-4">INSTAFF</p>
-            <p className="text-neutral-400">India's Most Trusted Workforce Platform</p>
-            <p className="text-neutral-500 mt-4">© 2026 INSTAFF. All rights reserved.</p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <span className="text-xl font-black tracking-widest text-black dark:text-white">INSTAFF</span>
+            <p className="text-neutral-400 text-xs">India's Most Trusted Workforce Platform</p>
+            <p className="text-neutral-400 text-xs">© 2026 INSTAFF. All rights reserved.</p>
           </div>
         </div>
       </footer>

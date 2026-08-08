@@ -20,13 +20,21 @@ enum Gender {
   OTHER
 }
 
-enum SkillCategory {
-  MAID
-  COOK
-  DRIVER
-  NURSE
-  PLUMBER
-  ELECTRICIAN
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum EducationLevel {
+  NO_FORMAL_EDUCATION
+  PRIMARY
+  SECONDARY
+  HIGHER_SECONDARY
+  DIPLOMA
+  GRADUATE
+  POST_GRADUATE
 }
 
 enum BookingType {
@@ -49,14 +57,82 @@ enum PaymentStatus {
   PAID
 }
 
+enum ComplaintStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+// ── Skill Taxonomy ────────────────────────────────────────────────────────────
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  subCategories SubCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model SubCategory {
+  id         String @id @default(cuid())
+  name       String
+  slug       String @unique
+  categoryId String
+
+  category     Category      @relation(fields: [categoryId], references: [id])
+  workerSkills WorkerSkill[]
+  bookings     Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([categoryId])
+}
+
+model WorkerSkill {
+  id              String @id @default(cuid())
+  workerProfileId String
+  subCategoryId   String
+
+  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  subCategory   SubCategory   @relation(fields: [subCategoryId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([workerProfileId, subCategoryId])
+  @@index([workerProfileId])
+  @@index([subCategoryId])
+}
+
+// ── Platform Payment Info (admin sets once, shown to all workers) ─────────────
+
+model PlatformPaymentInfo {
+  id        String @id @default(cuid())
+  upiId     String              // e.g. "instantstaff@upi"
+  upiName   String              // e.g. "Instant Staff Pvt Ltd"
+  qrImageUrl String?            // URL to QR code image
+  updatedBy String              // admin userId who last updated
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+
 model User {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   name     String
-  phone    String @unique
+  phone    String  @unique
   password String
-
-  role Role
-
+  role     Role
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -76,12 +152,10 @@ model CustomerProfile {
   id     String @id @default(cuid())
   userId String @unique
 
-  gender Gender?
-
-  address String?
-  city    String?
-  state   String?
-
+  gender    Gender?
+  address   String?
+  city      String?
+  state     String?
   latitude  Float?
   longitude Float?
 
@@ -92,68 +166,124 @@ model CustomerProfile {
 }
 
 model WorkerProfile {
-  id String @id @default(cuid())
-
+  id     String @id @default(cuid())
   userId String @unique
 
-  aadhaarNumber String @unique
+  aadhaarNumber   String  @unique
+  profilePhotoUrl String?
 
-  gender Gender?
+  gender         Gender?
+  dateOfBirth    DateTime?
+  height         Float?
+  weight         Float?
+  languagesKnown String[]
+  education      EducationLevel?
+  maritalStatus  MaritalStatus?
 
-  skillCategory SkillCategory
+  experience             Int
+  expectedSalary         Float
+  aboutYourself          String?
+  previousCompanies      String?
+  certifications         String?
+  availableTimings       String?
+  preferredWorkingRadius Int?
+  canRelocate            Boolean @default(false)
 
-  experience Int
+  fatherName             String?
+  motherName             String?
+  emergencyContact       String?
+  emergencyContactNumber String?
 
-  expectedSalary Float
-
-  city  String?
-  state String?
-
+  city      String?
+  state     String?
   latitude  Float?
   longitude Float?
 
-  isVerified Boolean @default(false)
-
+  isVerified  Boolean @default(false)
   isAvailable Boolean @default(true)
+  isSuspended Boolean @default(false)
 
-  rating Float @default(0)
+  rating       Float @default(0)
+  totalReviews Int   @default(0)
 
-  totalReviews Int @default(0)
+  verifiedAt       DateTime?
+  verifiedBy       String?
+  suspensionReason String?
+  rejectionReason  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
-
-  verifiedAt DateTime?
-
-  verifiedBy String?
-
-  isSuspended Boolean @default(false)
-
-  suspensionReason String?
-  rejectionReason  String?
+  user   User          @relation(fields: [userId], references: [id])
+  skills WorkerSkill[]
+  wallet WorkerWallet?
 }
 
 model EmployerProfile {
-  id String @id @default(cuid())
-
+  id     String @id @default(cuid())
   userId String @unique
 
-  companyName String
-
+  companyName   String
   contactPerson String
-
-  address String?
-
-  city  String?
-  state String?
+  address       String?
+  city          String?
+  state         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
+
+// ── Wallet ────────────────────────────────────────────────────────────────────
+
+model WorkerWallet {
+  id              String @id @default(cuid())
+  workerProfileId String @unique
+
+  pendingBalance   Float @default(0)
+  settledBalance   Float @default(0)
+  lifetimeEarnings Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  workerProfile WorkerProfile       @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+  settlements   Settlement[]
+}
+
+model WalletTransaction {
+  id        String          @id @default(cuid())
+  walletId  String
+  type      TransactionType
+
+  amount      Float
+  description String
+  bookingId   String?
+
+  createdAt DateTime @default(now())
+
+  wallet WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model Settlement {
+  id        String @id @default(cuid())
+  walletId  String
+  settledBy String
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  wallet WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+// ── Bookings ──────────────────────────────────────────────────────────────────
 
 model Booking {
   id String @id @default(cuid())
@@ -163,111 +293,89 @@ model Booking {
 
   customerName  String
   customerPhone String
-
-  workerName  String
-  workerPhone String
+  workerName    String
+  workerPhone   String
 
   bookingType BookingType
-  review      Review?
 
-  serviceCategory SkillCategory
+  subCategoryId String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  address String
-  city    String
-
-  scheduledDate DateTime
-
+  address         String
+  city            String
+  scheduledDate   DateTime
   durationMinutes Int
+  servicePrice    Float?
+  notes           String?
 
-  servicePrice Float?
+  status      BookingStatus @default(PENDING)
+  acceptedAt  DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
 
-  notes String?
-
-  status BookingStatus @default(PENDING)
-
-  acceptedAt   DateTime?
-  startedAt    DateTime?
-  completedAt  DateTime?
-  cancelledAt  DateTime?
-  workerPayout Float?    @default(0)
-
-  platformFee Float? @default(0)
-
+  workerPayout   Float?  @default(0)
+  platformFee    Float?  @default(0)
   isPaidToWorker Boolean @default(false)
+  paidAt         DateTime?
 
-  paidAt DateTime?
+  paymentStatus     PaymentStatus @default(PENDING)
+  paymentMethod     String?
+
+  // Worker confirms customer paid via UPI
+  isPaidByCustomer    Boolean @default(false)
+  paidByCustomerAt    DateTime?
+
+  startedByCustomer   Boolean @default(false)
+  completedByCustomer Boolean @default(false)
+
+  replacementRequested  Boolean  @default(false)
+  replacementReason     String?
+  replacementWorkerId   String?
+  replacementAssignedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  customer User @relation("CustomerBookings", fields: [customerId], references: [id])
-
+  customer   User        @relation("CustomerBookings", fields: [customerId], references: [id])
   worker     User        @relation("WorkerBookings", fields: [workerId], references: [id])
+  review     Review?
   complaints Complaint[]
-  paymentStatus PaymentStatus @default(PENDING)
-
-paymentMethod String?
-
-startedByCustomer Boolean @default(false)
-
-completedByCustomer Boolean @default(false)
-
-replacementRequested Boolean @default(false)
-
-replacementReason String?
-
-  replacementWorkerId String?
-  replacementAssignedAt DateTime?
 
   @@index([customerId])
   @@index([workerId])
   @@index([status])
+  @@index([subCategoryId])
 }
 
 model Review {
-  id String @id @default(cuid())
-
-  bookingId String @unique
-
+  id         String @id @default(cuid())
+  bookingId  String @unique
   customerId String
   workerId   String
 
-  rating Int
-
+  rating  Int
   comment String?
 
   createdAt DateTime @default(now())
 
-  booking Booking @relation(fields: [bookingId], references: [id])
-
-  customer User @relation("CustomerReviews", fields: [customerId], references: [id])
-
-  worker User @relation("WorkerReviews", fields: [workerId], references: [id])
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  customer User    @relation("CustomerReviews", fields: [customerId], references: [id])
+  worker   User    @relation("WorkerReviews", fields: [workerId], references: [id])
 
   @@index([workerId])
 }
 
-enum ComplaintStatus {
-  OPEN
-  RESOLVED
-  REJECTED
-}
-
 model Complaint {
-  id String @id @default(cuid())
-
-  bookingId String
-
+  id             String @id @default(cuid())
+  bookingId      String
   raisedByUserId String
+  againstUserId  String
 
-  againstUserId String
-
-  reason String
-
+  reason      String
   description String?
 
-  status ComplaintStatus @default(OPEN)
-
+  status     ComplaintStatus @default(OPEN)
   adminNotes String?
 
   createdAt DateTime @default(now())

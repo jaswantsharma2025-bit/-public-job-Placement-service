@@ -1,77 +1,80 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import WorkerLayout from '../../layouts/WorkerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { bookingService } from '../../services/api';
-import { Calendar, MapPin, DollarSign, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { bookingService, profileService } from '../../services/api';
+import { Calendar, MapPin, DollarSign, Star, Wallet, CheckCircle, QrCode } from 'lucide-react';
 
 const StarDisplay = ({ rating }: { rating: number }) => (
   <div className="flex gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
-      <Star
-        key={s}
-        className={`w-3.5 h-3.5 ${
-          s <= rating
-            ? 'fill-black dark:fill-white text-black dark:text-white'
-            : 'text-neutral-300 dark:text-neutral-600'
-        }`}
-      />
+      <Star key={s} className={`w-3.5 h-3.5 ${s <= rating ? 'fill-black dark:fill-white text-black dark:text-white' : 'text-neutral-300 dark:text-neutral-600'}`} />
     ))}
   </div>
 );
 
+const getStatusBadge = (status: string) => {
+  const colors: Record<string, string> = {
+    PENDING:     'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300',
+    ACCEPTED:    'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300',
+    IN_PROGRESS: 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300',
+    COMPLETED:   'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300',
+    CANCELLED:   'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
+    REJECTED:    'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
+    NO_SHOW:     'bg-neutral-100 dark:bg-neutral-900/20 text-neutral-700 dark:text-neutral-300',
+  };
+  return <Badge className={colors[status] || ''}>{status.replace('_', ' ')}</Badge>;
+};
+
 export default function WorkerBookings() {
   const queryClient = useQueryClient();
+
+  // Payment popup state
+  const [paymentBooking, setPaymentBooking] = useState<any>(null);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['worker-bookings'],
     queryFn: bookingService.getWorkerBookings,
   });
 
-  const acceptBookingMutation = useMutation({
+  // Fetch platform payment info for QR popup
+  const { data: paymentInfo } = useQuery({
+    queryKey: ['payment-info-worker'],
+    queryFn: profileService.getPaymentInfo,
+  });
+
+  const acceptMutation = useMutation({
     mutationFn: (id: string) => bookingService.acceptBooking(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['worker-bookings'] });
-      toast.success('Booking accepted!');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to accept booking');
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['worker-bookings'] }); toast.success('Booking accepted!'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to accept booking'),
   });
 
-  const rejectBookingMutation = useMutation({
+  const rejectMutation = useMutation({
     mutationFn: (id: string) => bookingService.rejectBooking(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['worker-bookings'] });
-      toast.success('Booking rejected');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to reject booking');
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['worker-bookings'] }); toast.success('Booking rejected'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to reject booking'),
   });
 
-  const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      PENDING: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300',
-      ACCEPTED: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300',
-      IN_PROGRESS: 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300',
-      COMPLETED: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300',
-      CANCELLED: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
-      REJECTED: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
-      NO_SHOW: 'bg-neutral-100 dark:bg-neutral-900/20 text-neutral-700 dark:text-neutral-300',
-    };
-    return <Badge className={colors[status] || ''}>{status}</Badge>;
-  };
+  const confirmPaymentMutation = useMutation({
+    mutationFn: (id: string) => bookingService.confirmPayment(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['worker-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['worker-wallet'] });
+      toast.success('Payment confirmed! Amount added to your wallet.');
+      setPaymentBooking(null);
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to confirm payment'),
+  });
 
-  // Compute aggregate stats from bookings
-  const completedBookings = bookings.filter((b: any) => b.status === 'COMPLETED');
-  const reviewedBookings = completedBookings.filter((b: any) => b.review);
-  const averageRating =
-    reviewedBookings.length > 0
-      ? reviewedBookings.reduce((sum: number, b: any) => sum + b.review.rating, 0) / reviewedBookings.length
-      : 0;
+  const completedBookings = (bookings as any[]).filter((b) => b.status === 'COMPLETED');
+  const reviewedBookings  = completedBookings.filter((b) => b.review);
+  const averageRating     = reviewedBookings.length > 0
+    ? reviewedBookings.reduce((sum: number, b: any) => sum + b.review.rating, 0) / reviewedBookings.length
+    : 0;
 
   return (
     <WorkerLayout>
@@ -81,10 +84,9 @@ export default function WorkerBookings() {
           <p className="text-neutral-600 dark:text-neutral-400 mt-1">Manage your service bookings</p>
         </div>
 
-        {/* Review summary bar */}
         {reviewedBookings.length > 0 && (
           <div className="flex items-center gap-4 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
-            <div className="flex flex-col">
+            <div>
               <span className="text-xs text-neutral-500 uppercase tracking-wider">Your Average Rating</span>
               <div className="flex items-center gap-2 mt-1">
                 <StarDisplay rating={Math.round(averageRating)} />
@@ -96,24 +98,27 @@ export default function WorkerBookings() {
         )}
 
         {isLoading ? (
-          <div className="text-center py-12">Loading bookings...</div>
-        ) : bookings.length === 0 ? (
+          <div className="text-center py-12">Loading bookings…</div>
+        ) : (bookings as any[]).length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-neutral-500">No bookings yet. Make sure you're available to receive bookings!</p>
+              <p className="text-neutral-500">No bookings yet. Make sure you're available!</p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking: any) => (
+            {(bookings as any[]).map((booking) => (
               <Card key={booking.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle>{booking.serviceCategory}</CardTitle>
-                      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 font-mono">
-                        Booking ID: {booking.id}
-                      </p>
+                      <CardTitle>
+                        {booking.subCategory?.name || 'Service'}
+                        <span className="text-sm font-normal text-neutral-400 ml-2">
+                          ({booking.subCategory?.category?.name})
+                        </span>
+                      </CardTitle>
+                      <p className="text-xs text-neutral-400 mt-0.5 font-mono">ID: {booking.id}</p>
                       <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
                         Customer: {booking.customerName || 'N/A'}
                       </p>
@@ -121,6 +126,7 @@ export default function WorkerBookings() {
                     {getStatusBadge(booking.status)}
                   </div>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div className="flex items-center gap-2">
@@ -133,28 +139,29 @@ export default function WorkerBookings() {
                     </div>
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-neutral-500" />
-                      <span>₹{booking.servicePrice}</span>
+                      <span>₹{booking.servicePrice ?? '—'}</span>
                     </div>
                   </div>
 
                   {booking.address && (
-                    <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       <strong>Address:</strong> {booking.address}
-                    </div>
+                    </p>
+                  )}
+                  {booking.notes && (
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      <strong>Notes:</strong> {booking.notes}
+                    </p>
                   )}
 
-                  {booking.notes && (
-                    <div className="text-sm text-neutral-600 dark:text-neutral-400">
-                      <strong>Notes:</strong> {booking.notes}
-                    </div>
-                  )}
+                  {/* ── Action buttons by status ─────────────────────────── */}
 
                   {booking.status === 'PENDING' && (
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>
+                      <Button size="sm" onClick={() => acceptMutation.mutate(booking.id)} disabled={acceptMutation.isPending}>
                         Accept
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => rejectBookingMutation.mutate(booking.id)} disabled={rejectBookingMutation.isPending}>
+                      <Button size="sm" variant="destructive" onClick={() => rejectMutation.mutate(booking.id)} disabled={rejectMutation.isPending}>
                         Reject
                       </Button>
                     </div>
@@ -165,13 +172,31 @@ export default function WorkerBookings() {
                   )}
 
                   {booking.status === 'IN_PROGRESS' && (
-                    <p className="text-sm text-purple-600 dark:text-purple-400">Service in progress</p>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">Service in progress…</p>
                   )}
 
-                  {booking.status === 'COMPLETED' && (
+                  {booking.status === 'COMPLETED' && !booking.isPaidByCustomer && (
+                    <div className="pt-2 space-y-2">
+                      <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                        Service completed — awaiting payment from customer
+                      </p>
+                      <Button
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setPaymentBooking(booking)}
+                      >
+                        <QrCode className="w-4 h-4" />
+                        Show Payment QR to Customer
+                      </Button>
+                    </div>
+                  )}
+
+                  {booking.status === 'COMPLETED' && booking.isPaidByCustomer && (
                     <div className="space-y-2">
-                      <p className="text-sm text-green-600 dark:text-green-400">Service completed successfully</p>
-                      {/* Show review received for this booking */}
+                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
+                        <CheckCircle className="w-4 h-4" />
+                        Payment confirmed — ₹{booking.servicePrice} added to your wallet
+                      </div>
                       {booking.review ? (
                         <div className="p-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg space-y-1">
                           <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Customer Review</p>
@@ -195,6 +220,67 @@ export default function WorkerBookings() {
           </div>
         )}
       </div>
+
+      {/* ── Payment QR Popup ─────────────────────────────────────────────────── */}
+      <Dialog open={!!paymentBooking} onOpenChange={(open) => { if (!open) setPaymentBooking(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-center p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
+              <p className="text-sm text-neutral-500 mb-1">Amount to collect</p>
+              <p className="text-4xl font-bold">₹{paymentBooking?.servicePrice ?? 0}</p>
+            </div>
+
+            {!paymentInfo ? (
+              <p className="text-center text-sm text-neutral-500">Payment info not set up by admin yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {paymentInfo.qrImageUrl && (
+                  <div className="flex justify-center">
+                    <img
+                      src={paymentInfo.qrImageUrl}
+                      alt="Payment QR Code"
+                      className="w-48 h-48 object-contain border border-neutral-200 dark:border-neutral-700 rounded-lg"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
+                    <span className="text-neutral-500">UPI ID</span>
+                    <span className="font-medium font-mono">{paymentInfo.upiId}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
+                    <span className="text-neutral-500">Name</span>
+                    <span className="font-medium">{paymentInfo.upiName}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-neutral-400 text-center">
+                  Ask the customer to scan the QR or use the UPI ID above
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setPaymentBooking(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                onClick={() => confirmPaymentMutation.mutate(paymentBooking.id)}
+                disabled={confirmPaymentMutation.isPending || !paymentInfo}
+              >
+                <Wallet className="w-4 h-4" />
+                {confirmPaymentMutation.isPending ? 'Confirming…' : 'Payment Received ✓'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </WorkerLayout>
   );
 }

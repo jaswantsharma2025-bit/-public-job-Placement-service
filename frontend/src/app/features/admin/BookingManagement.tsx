@@ -1,16 +1,23 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import AdminLayout from '../../layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { adminService } from '../../services/api';
-import { Calendar, MapPin, DollarSign } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, RefreshCw, User, Phone } from 'lucide-react';
 
 export default function BookingManagement() {
   const queryClient = useQueryClient();
 
-  const { data: bookings, isLoading } = useQuery({
+  // Reassign state
+  const [reassignBookingId, setReassignBookingId] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+
+  const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['admin-bookings'],
     queryFn: adminService.getAllBookings,
   });
@@ -37,6 +44,39 @@ export default function BookingManagement() {
     },
   });
 
+  const reassignMutation = useMutation({
+    mutationFn: ({ bookingId, workerId }: { bookingId: string; workerId: string }) =>
+      adminService.assignReplacement(bookingId, workerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+      toast.success('Worker reassigned successfully');
+      setReassignBookingId(null);
+      setCandidates([]);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to reassign worker');
+    },
+  });
+
+  const handleOpenReassign = async (bookingId: string) => {
+    setReassignBookingId(bookingId);
+    setCandidates([]);
+    setCandidatesLoading(true);
+    try {
+      const data = await adminService.getReplacementCandidates(bookingId);
+      setCandidates(data || []);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load replacement candidates');
+    } finally {
+      setCandidatesLoading(false);
+    }
+  };
+
+  const handleCloseReassign = () => {
+    setReassignBookingId(null);
+    setCandidates([]);
+  };
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       PENDING: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300',
@@ -60,7 +100,7 @@ export default function BookingManagement() {
 
         {isLoading ? (
           <div className="text-center py-12">Loading bookings...</div>
-        ) : !bookings || bookings.length === 0 ? (
+        ) : bookings.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-neutral-500">No bookings found</p>
@@ -107,6 +147,20 @@ export default function BookingManagement() {
                     </div>
                   )}
 
+                  {/* Show replacement request info if flagged */}
+                  {booking.replacementRequested && (
+                    <div className="p-3 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg">
+                      <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                        Replacement Requested
+                      </p>
+                      {booking.replacementReason && (
+                        <p className="text-sm text-orange-600 dark:text-orange-400 mt-0.5">
+                          Reason: {booking.replacementReason}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2 pt-2">
                     {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && (
                       <>
@@ -126,6 +180,14 @@ export default function BookingManagement() {
                         >
                           Force Cancel
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenReassign(booking.id)}
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                          Reassign Worker
+                        </Button>
                       </>
                     )}
                   </div>
@@ -135,6 +197,82 @@ export default function BookingManagement() {
           </div>
         )}
       </div>
+
+      {/* Reassign Worker Dialog */}
+      <Dialog open={!!reassignBookingId} onOpenChange={(open) => { if (!open) handleCloseReassign(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reassign Worker</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              Select a verified, available worker in the same city and skill category. The booking will be reset to PENDING for the new worker to accept.
+            </p>
+
+            {candidatesLoading ? (
+              <div className="text-center py-8 text-sm text-neutral-500">
+                Loading available workers...
+              </div>
+            ) : candidates.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-neutral-500">No available replacement workers found in this city and category.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {candidates.map((worker: any) => (
+                  <div
+                    key={worker.id}
+                    className="flex items-center justify-between p-3 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:border-black dark:hover:border-white transition-colors"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-neutral-400" />
+                        <span className="font-semibold text-sm">{worker.user?.name || 'N/A'}</span>
+                        <Badge variant="secondary" className="text-xs">{worker.skillCategory}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-neutral-500">
+                        <Phone className="w-3 h-3" />
+                        <span>{worker.user?.phone || 'N/A'}</span>
+                      </div>
+                      <div className="flex gap-3 text-xs text-neutral-500">
+                        <span>{worker.city || 'N/A'}</span>
+                        <span>·</span>
+                        <span>{worker.experience ?? 0} yrs exp</span>
+                        <span>·</span>
+                        <span>₹{worker.expectedSalary ?? 0}/mo</span>
+                        {worker.rating > 0 && (
+                          <>
+                            <span>·</span>
+                            <span>★ {worker.rating.toFixed(1)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        reassignMutation.mutate({
+                          bookingId: reassignBookingId!,
+                          workerId: worker.userId,
+                        })
+                      }
+                      disabled={reassignMutation.isPending}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <Button variant="outline" onClick={handleCloseReassign}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

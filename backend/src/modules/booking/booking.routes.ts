@@ -1,6 +1,6 @@
 import express from "express";
-
 import { authMiddleware } from "../../middleware/authMiddleware";
+import { authorizeRoles } from "../../middleware/roleMiddleware";
 
 import {
   createBookingHandler,
@@ -9,76 +9,36 @@ import {
   bookingDetails,
   acceptBookingHandler,
   rejectBookingHandler,
-  cancelBookingHandler,
+  customerStartBookingHandler,
   completeBookingHandler,
+  cancelBookingHandler,
   markPaidHandler,
   replacementHandler,
   noShowHandler,
-  customerStartBookingHandler,
+  confirmPaymentHandler,
 } from "./booking.controller";
 
 const router = express.Router();
 
 router.use(authMiddleware);
 
-router.post(
-  "/",
-  createBookingHandler
-);
+// Customer routes
+router.post("/",                                    authorizeRoles("CUSTOMER"), createBookingHandler);
+router.get("/my",                                   authorizeRoles("CUSTOMER"), myBookings);
+router.patch("/:id/customer-start",                 authorizeRoles("CUSTOMER"), customerStartBookingHandler);
+router.patch("/:id/customer-complete",              authorizeRoles("CUSTOMER"), completeBookingHandler);
+router.patch("/:id/cancel",                         authorizeRoles("CUSTOMER"), cancelBookingHandler);
+router.patch("/:id/pay",                            authorizeRoles("CUSTOMER"), markPaidHandler);
+router.patch("/:id/replacement",                    authorizeRoles("CUSTOMER"), replacementHandler);
+router.patch("/:id/no-show",                        authorizeRoles("CUSTOMER"), noShowHandler);
 
-router.get(
-  "/my",
-  myBookings
-);
+// Worker routes
+router.get("/worker/my",                            authorizeRoles("WORKER"),   workerBookings);
+router.patch("/:id/accept",                         authorizeRoles("WORKER"),   acceptBookingHandler);
+router.patch("/:id/reject",                         authorizeRoles("WORKER"),   rejectBookingHandler);
+router.patch("/:id/confirm-payment",                authorizeRoles("WORKER"),   confirmPaymentHandler);
 
-router.get(
-  "/worker/my",
-  workerBookings
-);
-
-router.get(
-  "/:id",
-  bookingDetails
-);
-
-router.patch(
-  "/:id/accept",
-  acceptBookingHandler
-);
-
-router.patch(
-  "/:id/reject",
-  rejectBookingHandler
-);
-
-router.patch(
-  "/:id/customer-start",
-  customerStartBookingHandler
-);
-
-router.patch(
-  "/:id/customer-complete",
-  completeBookingHandler
-);
-
-router.patch(
-  "/:id/cancel",
-  cancelBookingHandler
-);
-
-router.patch(
-  "/:id/pay",
-  markPaidHandler
-);
-
-router.patch(
-  "/:id/replacement",
-  replacementHandler
-);
-
-router.patch(
-  "/:id/no-show",
-  noShowHandler
-);
+// Shared
+router.get("/:id",                                  bookingDetails);
 
 export default router;

@@ -1,8 +1,13 @@
 export type Role = 'CUSTOMER' | 'WORKER' | 'ADMIN' | 'EMPLOYER';
 
-export type SkillCategory = 'MAID' | 'COOK' | 'DRIVER' | 'NURSE' | 'PLUMBER' | 'ELECTRICIAN';
-
-export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type BookingStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'NO_SHOW';
 
 export type BookingType = 'INSTANT' | 'SCHEDULED';
 
@@ -11,6 +16,45 @@ export type PaymentStatus = 'PENDING' | 'PAID';
 export type ComplaintStatus = 'OPEN' | 'RESOLVED' | 'REJECTED';
 
 export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED';
+
+export type EducationLevel =
+  | 'NO_FORMAL_EDUCATION'
+  | 'PRIMARY'
+  | 'SECONDARY'
+  | 'HIGHER_SECONDARY'
+  | 'DIPLOMA'
+  | 'GRADUATE'
+  | 'POST_GRADUATE';
+
+// ── Skill taxonomy types ──────────────────────────────────────────────────────
+
+export interface SubCategory {
+  id: string;
+  name: string;
+  slug: string;
+  categoryId: string;
+  category?: Category;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  subCategories: SubCategory[];
+}
+
+export interface WorkerSkill {
+  id: string;
+  workerProfileId: string;
+  subCategoryId: string;
+  subCategory: SubCategory;
+}
+
+// ── Core entities ─────────────────────────────────────────────────────────────
 
 export interface User {
   id: string;
@@ -27,23 +71,69 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Worker extends User {
-  aadhaarNumber?: string;
-  skillCategory: SkillCategory;
+export interface WorkerProfile {
+  id: string;
+  userId: string;
+  user?: Pick<User, 'id' | 'name' | 'phone' | 'role'>;
+
+  // Skills (replaces single skillCategory)
+  skills: WorkerSkill[];
+
+  // Documents
+  aadhaarNumber: string;
+  profilePhotoUrl?: string;
+
+  // Personal
+  gender?: Gender;
+  dateOfBirth?: string;
+  height?: number;
+  weight?: number;
+  languagesKnown?: string[];
+  education?: EducationLevel;
+  maritalStatus?: MaritalStatus;
+
+  // Professional
   experience: number;
   expectedSalary: number;
-  rating: number;
-  isAvailable: boolean;
+  aboutYourself?: string;
+  previousCompanies?: string;
+  certifications?: string;
+  availableTimings?: string;
+  preferredWorkingRadius?: number;
+  canRelocate?: boolean;
+
+  // Family & Emergency
+  fatherName?: string;
+  motherName?: string;
+  emergencyContact?: string;
+  emergencyContactNumber?: string;
+
+  // Location
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+
+  // Platform
   isVerified: boolean;
-  verificationStatus: VerificationStatus;
+  isAvailable: boolean;
+  isSuspended: boolean;
+  rating: number;
+  totalReviews: number;
+  suspensionReason?: string;
+  rejectionReason?: string;
+  verifiedAt?: string;
 }
+
+export type Worker = WorkerProfile;
 
 export interface Booking {
   id: string;
   customerId: string;
   workerId: string;
   bookingType: BookingType;
-  serviceCategory: SkillCategory;
+  subCategoryId: string;
+  subCategory?: SubCategory;
   address: string;
   city: string;
   scheduledDate?: string;
@@ -55,7 +145,7 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
   customer?: User;
-  worker?: Worker;
+  worker?: WorkerProfile;
 }
 
 export interface Review {
