@@ -3,7 +3,7 @@ import type { AuthResponse, LoginRequest, RegisterRequest } from '../types';
 
 const API_BASE =
   ((import.meta as any).env?.VITE_API_URL as string) ||
-  'http://localhost:5000/api';
+  'http://localhost:5001/api';
 
 export const api = axios.create({
   baseURL: API_BASE,
