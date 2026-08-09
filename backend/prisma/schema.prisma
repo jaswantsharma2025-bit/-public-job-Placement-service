@@ -7,6 +7,261 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Category {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  slug          String        @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  subCategories SubCategory[]
+}
+
+model SubCategory {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  categoryId   String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  bookings     Booking[]
+  category     Category      @relation(fields: [categoryId], references: [id])
+  workerSkills WorkerSkill[]
+
+  @@index([categoryId])
+}
+
+model WorkerSkill {
+  id              String        @id @default(cuid())
+  workerProfileId String
+  subCategoryId   String
+  createdAt       DateTime      @default(now())
+  subCategory     SubCategory   @relation(fields: [subCategoryId], references: [id])
+  workerProfile   WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([workerProfileId, subCategoryId])
+  @@index([workerProfileId])
+  @@index([subCategoryId])
+}
+
+model PlatformPaymentInfo {
+  id         String   @id @default(cuid())
+  upiId      String
+  upiName    String
+  qrImageUrl String?
+  updatedBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+}
+
+model User {
+  id               String           @id @default(cuid())
+  name             String
+  phone            String           @unique
+  password         String
+  role             Role
+  createdAt        DateTime         @default(now())
+  isActive         Boolean          @default(true)
+  updatedAt        DateTime         @default(now()) @updatedAt
+  customerBookings Booking[]        @relation("CustomerBookings")
+  workerBookings   Booking[]        @relation("WorkerBookings")
+  customerProfile  CustomerProfile?
+  employerProfile  EmployerProfile?
+  customerReviews  Review[]         @relation("CustomerReviews")
+  workerReviews    Review[]         @relation("WorkerReviews")
+  workerProfile    WorkerProfile?
+}
+
+model CustomerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  gender    Gender?
+  address   String?
+  city      String?
+  state     String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model WorkerProfile {
+  id                     String          @id @default(cuid())
+  userId                 String          @unique
+  aadhaarNumber          String          @unique
+  experience             Int
+  expectedSalary         Float
+  isAvailable            Boolean         @default(true)
+  city                   String?
+  createdAt              DateTime        @default(now())
+  gender                 Gender?
+  isSuspended            Boolean         @default(false)
+  isVerified             Boolean         @default(false)
+  latitude               Float?
+  longitude              Float?
+  rating                 Float           @default(0)
+  rejectionReason        String?
+  state                  String?
+  suspensionReason       String?
+  totalReviews           Int             @default(0)
+  updatedAt              DateTime        @default(now()) @updatedAt
+  verifiedAt             DateTime?
+  verifiedBy             String?
+  aboutYourself          String?
+  availableTimings       String?
+  canRelocate            Boolean         @default(false)
+  certifications         String?
+  dateOfBirth            DateTime?
+  education              EducationLevel?
+  emergencyContact       String?
+  emergencyContactNumber String?
+  fatherName             String?
+  height                 Float?
+  languagesKnown         String[]
+  maritalStatus          MaritalStatus?
+  motherName             String?
+  preferredWorkingRadius Int?
+  previousCompanies      String?
+  profilePhotoUrl        String?
+  weight                 Float?
+  user                   User            @relation(fields: [userId], references: [id])
+  skills                 WorkerSkill[]
+  wallet                 WorkerWallet?
+}
+
+model EmployerProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  companyName   String
+  contactPerson String
+  address       String?
+  city          String?
+  state         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model WorkerWallet {
+  id               String              @id @default(cuid())
+  workerProfileId  String              @unique
+  pendingBalance   Float               @default(0)
+  settledBalance   Float               @default(0)
+  lifetimeEarnings Float               @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @default(now()) @updatedAt
+  settlements      Settlement[]
+  transactions     WalletTransaction[]
+  workerProfile    WorkerProfile       @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+}
+
+model WalletTransaction {
+  id          String          @id @default(cuid())
+  walletId    String
+  type        TransactionType
+  amount      Float
+  description String
+  bookingId   String?
+  createdAt   DateTime        @default(now())
+  wallet      WorkerWallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model Settlement {
+  id        String       @id @default(cuid())
+  walletId  String
+  settledBy String
+  amount    Float
+  note      String?
+  createdAt DateTime     @default(now())
+  wallet    WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model Booking {
+  id                    String        @id @default(cuid())
+  customerId            String
+  workerId              String
+  customerName          String
+  customerPhone         String
+  workerName            String
+  workerPhone           String
+  bookingType           BookingType
+  address               String
+  city                  String
+  scheduledDate         DateTime
+  durationMinutes       Int
+  servicePrice          Float?
+  notes                 String?
+  status                BookingStatus @default(PENDING)
+  acceptedAt            DateTime?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+  workerPayout          Float?        @default(0)
+  platformFee           Float?        @default(0)
+  isPaidToWorker        Boolean       @default(false)
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @default(now()) @updatedAt
+  paymentStatus         PaymentStatus @default(PENDING)
+  paymentMethod         String?
+  startedByCustomer     Boolean       @default(false)
+  completedByCustomer   Boolean       @default(false)
+  replacementRequested  Boolean       @default(false)
+  replacementReason     String?
+  replacementWorkerId   String?
+  replacementAssignedAt DateTime?
+  isPaidByCustomer      Boolean       @default(false)
+  paidByCustomerAt      DateTime?
+  subCategoryId         String
+  customer              User          @relation("CustomerBookings", fields: [customerId], references: [id])
+  subCategory           SubCategory   @relation(fields: [subCategoryId], references: [id])
+  worker                User          @relation("WorkerBookings", fields: [workerId], references: [id])
+  complaints            Complaint[]
+  review                Review?
+
+  @@index([customerId])
+  @@index([workerId])
+  @@index([status])
+  @@index([subCategoryId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  customerId String
+  workerId   String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  customer   User     @relation("CustomerReviews", fields: [customerId], references: [id])
+  worker     User     @relation("WorkerReviews", fields: [workerId], references: [id])
+
+  @@index([workerId])
+}
+
+model Complaint {
+  id             String          @id @default(cuid())
+  bookingId      String
+  raisedByUserId String
+  againstUserId  String
+  reason         String
+  description    String?
+  status         ComplaintStatus @default(OPEN)
+  adminNotes     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  booking        Booking         @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([raisedByUserId])
+  @@index([againstUserId])
+}
+
 enum Role {
   CUSTOMER
   WORKER
@@ -66,324 +321,4 @@ enum ComplaintStatus {
 enum TransactionType {
   CREDIT
   DEBIT
-}
-
-// ── Skill Taxonomy ────────────────────────────────────────────────────────────
-
-model Category {
-  id   String @id @default(cuid())
-  name String @unique
-  slug String @unique
-
-  subCategories SubCategory[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-model SubCategory {
-  id         String @id @default(cuid())
-  name       String
-  slug       String @unique
-  categoryId String
-
-  category     Category      @relation(fields: [categoryId], references: [id])
-  workerSkills WorkerSkill[]
-  bookings     Booking[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@index([categoryId])
-}
-
-model WorkerSkill {
-  id              String @id @default(cuid())
-  workerProfileId String
-  subCategoryId   String
-
-  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
-  subCategory   SubCategory   @relation(fields: [subCategoryId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([workerProfileId, subCategoryId])
-  @@index([workerProfileId])
-  @@index([subCategoryId])
-}
-
-// ── Platform Payment Info (admin sets once, shown to all workers) ─────────────
-
-model PlatformPaymentInfo {
-  id        String @id @default(cuid())
-  upiId     String              // e.g. "instantstaff@upi"
-  upiName   String              // e.g. "Instant Staff Pvt Ltd"
-  qrImageUrl String?            // URL to QR code image
-  updatedBy String              // admin userId who last updated
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-// ── Users ─────────────────────────────────────────────────────────────────────
-
-model User {
-  id       String  @id @default(cuid())
-  name     String
-  phone    String  @unique
-  password String
-  role     Role
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  customerProfile CustomerProfile?
-  workerProfile   WorkerProfile?
-  employerProfile EmployerProfile?
-
-  customerBookings Booking[] @relation("CustomerBookings")
-  workerBookings   Booking[] @relation("WorkerBookings")
-  customerReviews  Review[]  @relation("CustomerReviews")
-  workerReviews    Review[]  @relation("WorkerReviews")
-}
-
-model CustomerProfile {
-  id     String @id @default(cuid())
-  userId String @unique
-
-  gender    Gender?
-  address   String?
-  city      String?
-  state     String?
-  latitude  Float?
-  longitude Float?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model WorkerProfile {
-  id     String @id @default(cuid())
-  userId String @unique
-
-  aadhaarNumber   String  @unique
-  profilePhotoUrl String?
-
-  gender         Gender?
-  dateOfBirth    DateTime?
-  height         Float?
-  weight         Float?
-  languagesKnown String[]
-  education      EducationLevel?
-  maritalStatus  MaritalStatus?
-
-  experience             Int
-  expectedSalary         Float
-  aboutYourself          String?
-  previousCompanies      String?
-  certifications         String?
-  availableTimings       String?
-  preferredWorkingRadius Int?
-  canRelocate            Boolean @default(false)
-
-  fatherName             String?
-  motherName             String?
-  emergencyContact       String?
-  emergencyContactNumber String?
-
-  city      String?
-  state     String?
-  latitude  Float?
-  longitude Float?
-
-  isVerified  Boolean @default(false)
-  isAvailable Boolean @default(true)
-  isSuspended Boolean @default(false)
-
-  rating       Float @default(0)
-  totalReviews Int   @default(0)
-
-  verifiedAt       DateTime?
-  verifiedBy       String?
-  suspensionReason String?
-  rejectionReason  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  user   User          @relation(fields: [userId], references: [id])
-  skills WorkerSkill[]
-  wallet WorkerWallet?
-}
-
-model EmployerProfile {
-  id     String @id @default(cuid())
-  userId String @unique
-
-  companyName   String
-  contactPerson String
-  address       String?
-  city          String?
-  state         String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-// ── Wallet ────────────────────────────────────────────────────────────────────
-
-model WorkerWallet {
-  id              String @id @default(cuid())
-  workerProfileId String @unique
-
-  pendingBalance   Float @default(0)
-  settledBalance   Float @default(0)
-  lifetimeEarnings Float @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  workerProfile WorkerProfile       @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
-  transactions  WalletTransaction[]
-  settlements   Settlement[]
-}
-
-model WalletTransaction {
-  id        String          @id @default(cuid())
-  walletId  String
-  type      TransactionType
-
-  amount      Float
-  description String
-  bookingId   String?
-
-  createdAt DateTime @default(now())
-
-  wallet WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-
-  @@index([walletId])
-}
-
-model Settlement {
-  id        String @id @default(cuid())
-  walletId  String
-  settledBy String
-  amount    Float
-  note      String?
-
-  createdAt DateTime @default(now())
-
-  wallet WorkerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-
-  @@index([walletId])
-}
-
-// ── Bookings ──────────────────────────────────────────────────────────────────
-
-model Booking {
-  id String @id @default(cuid())
-
-  customerId String
-  workerId   String
-
-  customerName  String
-  customerPhone String
-  workerName    String
-  workerPhone   String
-
-  bookingType BookingType
-
-  subCategoryId String
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
-
-  address         String
-  city            String
-  scheduledDate   DateTime
-  durationMinutes Int
-  servicePrice    Float?
-  notes           String?
-
-  status      BookingStatus @default(PENDING)
-  acceptedAt  DateTime?
-  startedAt   DateTime?
-  completedAt DateTime?
-  cancelledAt DateTime?
-
-  workerPayout   Float?  @default(0)
-  platformFee    Float?  @default(0)
-  isPaidToWorker Boolean @default(false)
-  paidAt         DateTime?
-
-  paymentStatus     PaymentStatus @default(PENDING)
-  paymentMethod     String?
-
-  // Worker confirms customer paid via UPI
-  isPaidByCustomer    Boolean @default(false)
-  paidByCustomerAt    DateTime?
-
-  startedByCustomer   Boolean @default(false)
-  completedByCustomer Boolean @default(false)
-
-  replacementRequested  Boolean  @default(false)
-  replacementReason     String?
-  replacementWorkerId   String?
-  replacementAssignedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  customer   User        @relation("CustomerBookings", fields: [customerId], references: [id])
-  worker     User        @relation("WorkerBookings", fields: [workerId], references: [id])
-  review     Review?
-  complaints Complaint[]
-
-  @@index([customerId])
-  @@index([workerId])
-  @@index([status])
-  @@index([subCategoryId])
-}
-
-model Review {
-  id         String @id @default(cuid())
-  bookingId  String @unique
-  customerId String
-  workerId   String
-
-  rating  Int
-  comment String?
-
-  createdAt DateTime @default(now())
-
-  booking  Booking @relation(fields: [bookingId], references: [id])
-  customer User    @relation("CustomerReviews", fields: [customerId], references: [id])
-  worker   User    @relation("WorkerReviews", fields: [workerId], references: [id])
-
-  @@index([workerId])
-}
-
-model Complaint {
-  id             String @id @default(cuid())
-  bookingId      String
-  raisedByUserId String
-  againstUserId  String
-
-  reason      String
-  description String?
-
-  status     ComplaintStatus @default(OPEN)
-  adminNotes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  booking Booking @relation(fields: [bookingId], references: [id])
-
-  @@index([bookingId])
-  @@index([raisedByUserId])
-  @@index([againstUserId])
 }
