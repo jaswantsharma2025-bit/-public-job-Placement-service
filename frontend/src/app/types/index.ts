@@ -165,7 +165,77 @@ preferredCountries?: string[];
   verifiedAt?: string;
 }
 
-export type Worker = WorkerProfile;
+export interface PublicWorkerLocation {
+  id: string;
+  workerProfileId: string;
+  city: string;
+  state?: string | null;
+  isPrimary: boolean;
+}
+
+export interface PublicWorkerSkill {
+  id: string;
+  workerProfileId: string;
+  subCategoryId: string;
+
+  subCategory: {
+    id: string;
+    name: string;
+    slug: string;
+    categoryId: string;
+    category?: {
+      id: string;
+      name: string;
+      slug: string;
+      sequence?: number;
+    };
+  };
+}
+
+export interface PublicWorkerProfile {
+  id: string;
+  userId: string;
+
+  user?: {
+    id: string;
+    name: string;
+  };
+
+  profilePhotoUrl?: string;
+
+  // Professional / customer-visible
+  gender?: Gender;
+  languagesKnown?: string[];
+  education?: EducationLevel;
+
+  experience: number;
+  aboutYourself?: string;
+  previousCompanies?: string;
+  certifications?: string;
+  availableTimings?: string;
+  preferredWorkingRadius?: number;
+  canRelocate?: boolean;
+
+  employmentTypes: EmploymentType[];
+  workMode?: WorkMode;
+  workGeography?: WorkGeography;
+  preferredCountries?: string[];
+
+  // Service area — NOT residential address
+  city?: string;
+  state?: string;
+
+  // Availability / platform
+  isVerified: boolean;
+  isAvailable: boolean;
+  rating: number;
+  totalReviews: number;
+
+  skills: PublicWorkerSkill[];
+  locations?: PublicWorkerLocation[];
+}
+
+export type Worker = PublicWorkerProfile;
 
 export interface Booking {
   id: string;
@@ -254,7 +324,6 @@ export interface WorkerDirectoryFilters {
   search?: string;
   city?: string;
   isAvailable?: boolean;
-  isVerified?: boolean;
   sort?: WorkerDirectorySort;
 }
 
@@ -315,7 +384,7 @@ export interface RequirementCandidate {
   createdAt?: string;
   updatedAt?: string;
 
-  workerProfile?: WorkerProfile;
+  workerProfile?: PublicWorkerProfile;
 }
 
 export interface Requirement {

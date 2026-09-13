@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma";
+import { customerWorkerSelect } from "../worker/worker.public";
 
 type RequirementForMatching = {
   id: string;
@@ -377,18 +378,29 @@ export const generateRequirementMatches = async (
   }
 
   return prisma.requirementCandidate.findMany({
-    where: {
-      requirementId,
-    },
+  where: {
+    requirementId,
+  },
 
-    include: {
-      workerProfile: {
-        include: workerInclude,
-      },
-    },
+  select: {
+    id: true,
+    requirementId: true,
+    workerProfileId: true,
+    status: true,
+    matchScore: true,
+    matchReason: true,
+    rank: true,
+    assignedAt: true,
+    createdAt: true,
+    updatedAt: true,
 
-    orderBy: {
-      rank: "asc",
+    workerProfile: {
+      select: customerWorkerSelect,
     },
-  });
+  },
+
+  orderBy: {
+    rank: "asc",
+  },
+});
 };

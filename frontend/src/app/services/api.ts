@@ -10,6 +10,7 @@ import type {
   RequirementCandidate,
   WorkerProfile,
   Category,
+  PublicWorkerProfile,
 } from '../types';
 
 const API_BASE =
@@ -64,39 +65,49 @@ export const categoryService = {
 };
 
 export const workerService = {
-  // CUSTOMER DISCOVERY — backend ALWAYS filters isVerified=true, isSuspended=false.
-  // The frontend must never rely on its own filtering as the security boundary;
-  // we only defensively drop anything that slips through unexpectedly.
-  getAll: async (params?: WorkerDirectoryFilters): Promise<WorkerProfile[]> => {
-    const response = await api.get('/workers', {
+  // CUSTOMER DISCOVERY
+  getAll: async (
+    params?: WorkerDirectoryFilters
+  ): Promise<PublicWorkerProfile[]> => {
+    const response = await api.get("/workers", {
       params,
     });
 
-    const workers: WorkerProfile[] = response.data.data ?? [];
+    const workers: PublicWorkerProfile[] =
+      response.data.data ?? [];
 
-    // Defensive filter only — NOT the security mechanism. The backend is the
-    // source of truth. This just guards the UI in case of an unexpected payload.
-    return workers.filter((w) => w.isVerified === true && w.isSuspended !== true);
+    // Backend is the actual security boundary.
+    // This is only a defensive UI check.
+    return workers.filter(
+      (worker) => worker.isVerified === true
+    );
   },
 
-  getById: async (id: string): Promise<WorkerProfile | null> => {
+  getById: async (
+    id: string
+  ): Promise<PublicWorkerProfile | null> => {
     try {
       const response = await api.get(`/workers/${id}`);
-      const worker: WorkerProfile | undefined = response.data.data;
 
-      // Defensive check — backend already excludes unverified/suspended workers
-      // from this endpoint, but we never render one to a customer if it slips through.
-      if (!worker || worker.isVerified !== true || worker.isSuspended === true) {
+      const worker:
+        | PublicWorkerProfile
+        | undefined = response.data.data;
+
+      if (!worker || worker.isVerified !== true) {
         return null;
       }
+
       return worker;
     } catch (error: any) {
       if (error.response?.status === 404) {
         return null;
       }
+
       throw error;
     }
   },
+
+  // EVERYTHING BELOW THIS STAYS EXACTLY AS IT IS
 
   // WORKER
   updateAvailability: async (isAvailable: boolean) => {

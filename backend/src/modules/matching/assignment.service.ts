@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma";
+import { customerWorkerSelect } from "../worker/worker.public";
 
 // ── Build Assignment Pool ────────────────────────────────────────────────────
 
@@ -201,33 +202,36 @@ export const buildAssignmentPool = async (
   }
 
   return prisma.requirementCandidate.findMany({
-    where: {
-      requirementId,
-    },
+  where: {
+    requirementId,
+  },
 
-    include: {
-      workerProfile: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              phone: true,
-            },
-          },
-        },
-      },
-    },
+  select: {
+    id: true,
+    requirementId: true,
+    workerProfileId: true,
+    status: true,
+    matchScore: true,
+    matchReason: true,
+    rank: true,
+    assignedAt: true,
+    createdAt: true,
+    updatedAt: true,
 
-    orderBy: [
-      {
-        status: "asc",
-      },
-      {
-        rank: "asc",
-      },
-    ],
-  });
+    workerProfile: {
+      select: customerWorkerSelect,
+    },
+  },
+
+  orderBy: [
+    {
+      status: "asc",
+    },
+    {
+      rank: "asc",
+    },
+  ],
+});
 };
 
 // ── Assign Requirement Worker ─────────────────────────────────────────────────
@@ -423,5 +427,26 @@ export const assignRequirementWorker = async (
       return updatedCandidate;
     });
 
-  return result;
+  return prisma.requirementCandidate.findUnique({
+  where: {
+    id: result.id,
+  },
+
+  select: {
+    id: true,
+    requirementId: true,
+    workerProfileId: true,
+    status: true,
+    matchScore: true,
+    matchReason: true,
+    rank: true,
+    assignedAt: true,
+    createdAt: true,
+    updatedAt: true,
+
+    workerProfile: {
+      select: customerWorkerSelect,
+    },
+  },
+});
 };
