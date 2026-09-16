@@ -261,7 +261,8 @@ export const findMatchingWorkers = async (
 
 export const generateRequirementMatches = async (
   requirementId: string,
-  userId: string
+  userId: string,
+  isAdmin = false
 ) => {
   const requirement =
     await prisma.requirement.findUnique({
@@ -274,9 +275,12 @@ export const generateRequirementMatches = async (
     throw new Error("Requirement not found");
   }
 
-  if (requirement.createdById !== userId) {
-    throw new Error("Unauthorized");
-  }
+ if (
+  !isAdmin &&
+  requirement.createdById !== userId
+) {
+  throw new Error("Unauthorized");
+}
 
   if (
     requirement.status !== "OPEN" &&

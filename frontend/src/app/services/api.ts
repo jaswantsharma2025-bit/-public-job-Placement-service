@@ -8,9 +8,14 @@ import type {
   WorkerDirectoryFilters,
   Requirement,
   RequirementCandidate,
-  WorkerProfile,
   Category,
   PublicWorkerProfile,
+  // CRM
+  CrmOverview,
+  CrmRequirementFilters,
+  CrmRequirementsResponse,
+  CrmRequirementPipeline,
+  CrmRequirementListItem,
 } from '../types';
 
 const API_BASE =
@@ -34,11 +39,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/auth/login';
-    }
+    console.error(
+      'API ERROR:',
+      error.response?.status,
+      error.config?.method?.toUpperCase(),
+      error.config?.url,
+      error.response?.data
+    );
+
     return Promise.reject(error);
   }
 );
@@ -417,6 +425,117 @@ export const matchingService = {
   ): Promise<RequirementCandidate> => {
     const response = await api.post(
       `/matching/requirements/${requirementId}/assign`,
+      {
+        workerProfileId,
+      }
+    );
+
+    return response.data.data;
+  },
+};
+
+// ── CRM / ADMIN OPERATIONS ───────────────────────────────────────────────────
+
+export const crmService = {
+  // CRM overview dashboard
+  getOverview: async (): Promise<CrmOverview> => {
+    const response = await api.get('/admin/crm/overview');
+
+    return response.data.data;
+  },
+
+  // Requirement operations list
+  getRequirements: async (
+    params?: CrmRequirementFilters
+  ): Promise<CrmRequirementsResponse> => {
+    const response = await api.get(
+      '/admin/crm/requirements',
+      {
+        params,
+      }
+    );
+
+    return {
+      data: response.data.data ?? [],
+      pagination: response.data.pagination,
+    };
+  },
+
+  // Full requirement detail
+  getRequirement: async (
+    requirementId: string
+  ): Promise<Requirement> => {
+    if (!requirementId) {
+      throw new Error('Requirement ID is required');
+    }
+
+    const response = await api.get(
+      `/admin/crm/requirements/${requirementId}`
+    );
+
+    return response.data.data;
+  },
+
+  // Requirement operational pipeline
+  getRequirementPipeline: async (
+    requirementId: string
+  ): Promise<CrmRequirementPipeline> => {
+    if (!requirementId) {
+      throw new Error('Requirement ID is required');
+    }
+
+    const response = await api.get(
+      `/admin/crm/requirements/${requirementId}/pipeline`
+    );
+
+    return response.data.data;
+  },
+
+  // Generate / refresh matching candidates
+  generateMatches: async (
+    requirementId: string
+  ): Promise<RequirementCandidate[]> => {
+    if (!requirementId) {
+      throw new Error('Requirement ID is required');
+    }
+
+    const response = await api.post(
+      `/admin/crm/requirements/${requirementId}/match`
+    );
+
+    return response.data.data ?? [];
+  },
+
+  // Build PRIMARY / BACKUP assignment pool
+  buildAssignmentPool: async (
+    requirementId: string
+  ): Promise<RequirementCandidate[]> => {
+    if (!requirementId) {
+      throw new Error('Requirement ID is required');
+    }
+
+    const response = await api.post(
+      `/admin/crm/requirements/${requirementId}/assignment-pool`
+    );
+
+    return response.data.data ?? [];
+  },
+
+  // Assign worker using workerProfileId
+  assignWorker: async (
+    requirementId: string,
+    workerProfileId: string
+  ): Promise<RequirementCandidate> => {
+    if (!requirementId) {
+      throw new Error('Requirement ID is required');
+    }
+
+    if (!workerProfileId) {
+      throw new Error('workerProfileId is required');
+    }
+
+    const response = await api.post(
+      `/admin/crm/requirements/${requirementId}/assign`,
       {
         workerProfileId,
       }

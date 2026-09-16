@@ -376,11 +376,18 @@ export interface RequirementCandidate {
   id: string;
   requirementId: string;
   workerProfileId: string;
+
   status: RequirementCandidateStatus;
-  matchScore: number;
-  matchReason: string;
-  rank: number;
+
+  matchScore?: number | null;
+  matchReason?: string | null;
+  rank?: number | null;
+
+  notifiedAt?: string | null;
+  interestedAt?: string | null;
+  shortlistedAt?: string | null;
   assignedAt?: string | null;
+
   createdAt?: string;
   updatedAt?: string;
 
@@ -390,31 +397,232 @@ export interface RequirementCandidate {
 export interface Requirement {
   id: string;
   createdById: string;
+
   categoryId: string;
   subCategoryId: string;
+
   city: string;
   state?: string | null;
   address?: string | null;
+
   shiftTiming?: string | null;
   salaryBudget?: number | null;
   minExperience: number;
+
   joiningDate: string;
   requiredWorkerCount: number;
+
   employmentTypes: EmploymentType[];
   workMode?: WorkMode | null;
   workGeography?: WorkGeography | null;
   preferredCountries: string[];
+
   assignmentMode: AssignmentMode;
   backupPoolSize: number;
   preferredWorkerProfileId?: string | null;
+
   status: RequirementStatus;
+
   createdAt: string;
   updatedAt: string;
+  openedAt?: string | null;
   completedAt?: string | null;
+  cancelledAt?: string | null;
 
   category?: Category;
   subCategory?: SubCategory;
   candidates?: RequirementCandidate[];
+}
+
+// ── CRM / Admin Operations ───────────────────────────────────────────────────
+
+export interface CrmRequirementListItem {
+  id: string;
+
+  city: string;
+  state?: string | null;
+
+  joiningDate: string;
+  requiredWorkerCount: number;
+
+  assignmentMode: AssignmentMode;
+  backupPoolSize: number;
+
+  status: RequirementStatus;
+
+  createdAt: string;
+  updatedAt: string;
+
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    sequence?: number;
+  };
+
+  subCategory?: {
+    id: string;
+    name: string;
+    slug: string;
+    categoryId: string;
+  };
+
+  _count?: {
+    candidates: number;
+  };
+}
+
+export interface CrmPipelineCounts {
+  recommended: number;
+  shortlisted: number;
+  primary: number;
+  backup: number;
+  assigned: number;
+  rejected: number;
+  expired: number;
+}
+
+export interface CrmFulfillment {
+  required: number;
+  assigned: number;
+  remaining: number;
+}
+
+export interface CrmRequirementPipeline {
+  requirementId: string;
+  status: RequirementStatus;
+
+  assignmentMode: AssignmentMode;
+
+  requiredWorkerCount: number;
+  backupPoolSize: number;
+
+  pipeline: CrmPipelineCounts;
+
+  fulfillment: CrmFulfillment;
+}
+
+export interface CrmRequirementsPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface CrmRequirementsResponse {
+  data: CrmRequirementListItem[];
+  pagination: CrmRequirementsPagination;
+}
+
+export interface CrmOverviewRequirements {
+  open: number;
+  matching: number;
+  filled: number;
+  active: number;
+
+  workersRequired: number;
+  workersAssigned: number;
+  workersRemaining: number;
+}
+
+export interface CrmOverviewMatching {
+  recommended: number;
+  shortlisted: number;
+  primary: number;
+  backup: number;
+  assigned: number;
+}
+
+export interface CrmOverviewAttention {
+  pendingWorkers: number;
+  requirementsNeedingMatching: number;
+  requirementsNeedingAssignment: number;
+  openComplaints: number;
+  pendingBookings: number;
+}
+
+export interface CrmRecentRequirement {
+  id: string;
+
+  city: string;
+  state?: string | null;
+
+  joiningDate: string;
+  requiredWorkerCount: number;
+
+  assignmentMode: AssignmentMode;
+  status: RequirementStatus;
+
+  createdAt: string;
+  updatedAt: string;
+
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  subCategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  _count?: {
+    candidates: number;
+  };
+}
+
+export interface CrmRecentAssignment {
+  id: string;
+  requirementId: string;
+  workerProfileId: string;
+
+  assignedAt?: string | null;
+
+  requirement: {
+    id: string;
+
+    city: string;
+    state?: string | null;
+
+    requiredWorkerCount: number;
+    status: RequirementStatus;
+
+    category?: {
+      id: string;
+      name: string;
+    };
+
+    subCategory?: {
+      id: string;
+      name: string;
+    };
+  };
+
+  workerProfile?: PublicWorkerProfile;
+}
+
+export interface CrmOverview {
+  requirements: CrmOverviewRequirements;
+
+  matching: CrmOverviewMatching;
+
+  attention: CrmOverviewAttention;
+
+  recentRequirements: CrmRecentRequirement[];
+
+  recentAssignments: CrmRecentAssignment[];
+}
+
+export interface CrmRequirementFilters {
+  status?: RequirementStatus;
+  search?: string;
+  city?: string;
+  categoryId?: string;
+  subCategoryId?: string;
+  page?: number;
+  limit?: number;
 }
 
 // ── API response envelope types ────────────────────────────────────────────────

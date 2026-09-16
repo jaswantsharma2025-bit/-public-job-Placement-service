@@ -5,7 +5,8 @@ import { customerWorkerSelect } from "../worker/worker.public";
 
 export const buildAssignmentPool = async (
   requirementId: string,
-  userId: string
+  userId: string,
+  isAdmin = false
 ) => {
   const requirement =
     await prisma.requirement.findUnique({
@@ -18,9 +19,12 @@ export const buildAssignmentPool = async (
     throw new Error("Requirement not found");
   }
 
-  if (requirement.createdById !== userId) {
-    throw new Error("Unauthorized");
-  }
+ if (
+  !isAdmin &&
+  requirement.createdById !== userId
+) {
+  throw new Error("Unauthorized");
+}
 
   if (
     requirement.status === "CANCELLED" ||
@@ -239,7 +243,8 @@ export const buildAssignmentPool = async (
 export const assignRequirementWorker = async (
   requirementId: string,
   workerProfileId: string,
-  userId: string
+  userId: string,
+  isAdmin = false
 ) => {
   const requirement =
     await prisma.requirement.findUnique({
@@ -252,9 +257,12 @@ export const assignRequirementWorker = async (
     throw new Error("Requirement not found");
   }
 
-  if (requirement.createdById !== userId) {
-    throw new Error("Unauthorized");
-  }
+  if (
+  !isAdmin &&
+  requirement.createdById !== userId
+) {
+  throw new Error("Unauthorized");
+}
 
   if (
     requirement.status === "CANCELLED" ||
