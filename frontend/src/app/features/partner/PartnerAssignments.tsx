@@ -24,8 +24,23 @@ export default function PartnerAssignments() {
     || (requirementsQuery.error as Error | null)?.message;
 
   const assignments: TrackedPartnerCandidate[] = (requirementsQuery.data ?? []).flatMap((requirement) =>
-    (requirement.candidates ?? [])
-      .filter(isTrackedPartnerCandidate)
+    (requirement.candidates ?? []).filter(
+      (candidate): candidate is TrackedPartnerCandidate => {
+        if (!isTrackedPartnerCandidate(candidate)) return false;
+
+        const replacedCandidateIds = new Set(
+          (requirement.replacementRequests ?? [])
+            .filter((request) => request.status === 'RESOLVED')
+            .map((request) => request.currentAssignmentCandidateId)
+        );
+
+        return candidate.status === 'REJECTED' ||
+          (candidate.status === 'OFFERED' && ['OPEN', 'MATCHING'].includes(requirement.status)) ||
+          (candidate.status === 'ASSIGNED' &&
+            ['OPEN', 'MATCHING', 'FILLED'].includes(requirement.status) &&
+            !replacedCandidateIds.has(candidate.id));
+      }
+    )
       .map((candidate) => ({ ...candidate, requirement }))
   );
 

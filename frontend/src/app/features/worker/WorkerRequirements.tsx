@@ -14,9 +14,11 @@ const QUERY_KEY = ['worker-requirement-offers'];
 
 const canRespond = (offer: WorkerRequirementOffer) =>
   offer.status === 'OFFERED' &&
-  ['OPEN', 'MATCHING'].includes(offer.requirement.status);
+  (['OPEN', 'MATCHING'].includes(offer.requirement.status) ||
+    (Boolean(offer.replacementRequest) && offer.requirement.status === 'FILLED'));
 
 const displayStatus = (offer: WorkerRequirementOffer) => {
+  if (offer.isReplaced) return 'REPLACED';
   if (
     offer.status === 'ASSIGNED' &&
     ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(offer.requirement.status)
@@ -55,6 +57,11 @@ function RequirementCard({
           {' · '}
           {[offer.requirement.city, offer.requirement.state].filter(Boolean).join(', ')}
         </p>
+        {offer.replacementRequest && (
+          <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+            Replacement offer for {offer.replacementRequest.originalWorkerName}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <Badge variant={badgeVariant(displayStatus(offer))}>
@@ -106,10 +113,16 @@ export default function WorkerRequirements() {
   });
 
   const pendingOffers = offers.filter(canRespond);
-  const assignments = offers.filter((offer) => offer.status === 'ASSIGNED');
+  const assignments = offers.filter((offer) =>
+    offer.status === 'ASSIGNED' &&
+    !offer.isReplaced &&
+    ['OPEN', 'MATCHING', 'FILLED'].includes(offer.requirement.status)
+  );
   const previousOffers = offers.filter((offer) =>
     offer.status === 'REJECTED' ||
     offer.status === 'EXPIRED' ||
+    offer.isReplaced ||
+    (offer.status === 'ASSIGNED' && ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(offer.requirement.status)) ||
     (offer.status === 'OFFERED' && !canRespond(offer))
   );
 
@@ -217,6 +230,18 @@ export default function WorkerRequirements() {
                       <p><span className="text-neutral-500">Service area:</span> {selectedOffer.requirement.workGeography.toLowerCase()}</p>
                     )}
                   </div>
+
+                  {selectedOffer.replacementRequest && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/20">
+                      <p className="font-medium">Replacement assignment</p>
+                      <p className="mt-1 text-neutral-600 dark:text-neutral-300">
+                        This offer replaces {selectedOffer.replacementRequest.originalWorkerName}.
+                      </p>
+                      <p className="mt-1 text-neutral-600 dark:text-neutral-300">
+                        Reason: {selectedOffer.replacementRequest.reason}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-1 text-xs text-neutral-500">
                     {selectedOffer.offeredAt && <p>Offered: {new Date(selectedOffer.offeredAt).toLocaleString()}</p>}

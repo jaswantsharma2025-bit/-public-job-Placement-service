@@ -82,7 +82,11 @@ export default function WorkerDashboard() {
   const pendingRequirementCount = requirementOffers.filter((offer) =>
     offer.status === 'OFFERED' && ['OPEN', 'MATCHING'].includes(offer.requirement.status)
   ).length;
-  const confirmedAssignmentCount = requirementOffers.filter((offer) => offer.status === 'ASSIGNED').length;
+  const confirmedAssignmentCount = requirementOffers.filter((offer) =>
+    offer.status === 'ASSIGNED' &&
+    !offer.isReplaced &&
+    ['OPEN', 'MATCHING', 'FILLED'].includes(offer.requirement.status)
+  ).length;
 
   const handleAvailabilityToggle = async (checked: boolean) => {
     if (!profileComplete) {
